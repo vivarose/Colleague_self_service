@@ -40,6 +40,20 @@ savename = course+'.csv'
 df = pd.read_csv(os.path.join(folder,file), 
                  header=0)
 
+if 'Name' in df.columns:
+    df = df.rename({"Name": "Student Name"}, 
+                   axis='columns')
+if 'Advisee Preferred Email' in df.columns:
+    df = df.rename({'Advisee Preferred Email' : 'Preferred Email'}, 
+                   axis = 'columns')
+
+if 'Class Level' not in df.columns:
+    df['Class Level'] = None
+    adviseeflag = True
+else:
+    adviseeflag = False
+
+
 #display(df)
 
 # Start editing that dataframe
@@ -51,8 +65,9 @@ df.loc[:,'E-mail 1 - Type'] = ['Hamilton'] * len(df)
 firstnames = []
 notes = []
 names = []
+names_and_year = []
 
-for student in df['Student Name']:
+for student,year in zip(df['Student Name'], df['Class Level']):
     if "cross-listed" in student:
         fullname, note = student.split(sep = ' cross-listed as ')
     else:
@@ -65,15 +80,24 @@ for student in df['Student Name']:
         if firstname[-1] == '.': ## if the student has a title, like "Ms."
             firstname = fullname.split(sep = ' ')[1] 
     names.append(fullname)
+    if year is not None:
+        yr = str(year)[-2] + str(year)[-1]
+        names_and_year.append(fullname + " '" + yr)
     firstnames.append(firstname)
     notes.append(note)
 df.loc[:,'Given Name'] = firstnames
 df.loc[:,'Notes'] = notes
-df.loc[:,'Name'] = names
+df.loc[:,'FullName'] = names
+if adviseeflag:
+    assert (len(df) == len(names))
+    df.loc[:,'Name'] = names
+else:
+    df.loc[:,'Name'] = names_and_year
+
 
 
 lastnames = []
-for student in df['Name']:
+for student in df['FullName']:
     if ',' in student:
         lastname =  student.split(',')[0]
     else:
@@ -81,8 +105,9 @@ for student in df['Name']:
     lastnames.append(lastname)
 df.loc[:,'Family Name'] = lastnames
 
-df.loc[:,'Organization 1 - Title'] = \
-    [("class of " + str(year)) for year in df['Class Level']]
+if not adviseeflag:
+    df.loc[:,'Organization 1 - Title'] = \
+        [("class of " + str(year)) for year in df['Class Level']]
     
     
 #############
@@ -107,9 +132,14 @@ df = df.rename({"Preferred Email": "E-mail 1 - Value"},
                axis='columns')
 
 ## choose the relevant columns and save
-df2 = df[['Name','Given Name','Family Name', 'Notes', 'Organization 1 - Title', 
-          'Group Membership', 'E-mail 1 - Type', 'E-mail 1 - Value', 
-          ]]
+if adviseeflag:
+    df2 = df[['Name','Given Name','Family Name', 'Notes',  
+              'Group Membership', 'E-mail 1 - Type', 'E-mail 1 - Value', 
+              ]]
+else:
+    df2 = df[['Name','Given Name','Family Name', 'Notes', 'Organization 1 - Title', 
+              'Group Membership', 'E-mail 1 - Type', 'E-mail 1 - Value', 
+              ]]
 df2.to_csv(os.path.join(folder,savename))
 
 ## Explain what to do with the exported file.
