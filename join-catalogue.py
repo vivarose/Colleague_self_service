@@ -32,7 +32,37 @@ courses_df = pd.read_csv('courseExport.csv')
 courses_df['Course Number'] = courses_df['Course Number'].astype(str).str.strip()
 courses_df['Subject Code'] = courses_df['Subject Code'].astype(str).str.strip()
 
-# 3. Extract 'Subject Code' and 'Course Number' from the schedule's 'COURSE_NO' column
+# Rename
+courses_df = courses_df.rename(columns={'Instructor': 'Usual instructor'})
+
+#%% Split time columns into start and end time
+
+# 1. Identify all columns that start with 'TIME' followed by a number
+time_cols = [
+    col
+    for col in schedule_df.columns
+    if col.startswith('TIME') and col[4:].isdigit()
+]
+
+for col in time_cols:
+    # Convert column to string dtype safely, then extract start and end times
+    times = (
+        schedule_df[col]
+        .astype('string')
+        .str.extract(r'^(?P<start>\S+)\s+(?P<end>\S+)$')
+    )
+
+    # Assign start and end columns directly
+    schedule_df[f'{col}-start'] = times['start']
+    schedule_df[f'{col}-end'] = times['end']
+
+# Verify the results on TIME1
+#print(schedule_df[['TIME1', 'TIME1-start', 'TIME1-end']].head())
+
+# Drop original TIME columns if you no longer need them
+schedule_df.drop(columns=time_cols, inplace=True)
+
+#%% 3. Extract 'Subject Code' and 'Course Number' from the schedule's 'COURSE_NO' column
 # Example: 'AFRST102 01' -> Subject: 'AFRST', Number: '102'
 extracted_keys = schedule_df['COURSE_NO'].astype(str).str.extract(
     r'([A-Za-z]+)\s*(\d+[A-Za-z]*)'
@@ -44,15 +74,6 @@ schedule_df['Course Number'] = extracted_keys[1].str.strip()
 merged_df = schedule_df.merge(
     courses_df, on=['Subject Code', 'Course Number'], how='left'
 )
-
-"""
-# 5. Save the merged output to a new Excel file
-merged_df.to_excel('merged_course_schedule.xlsx', index=False)
-
-print(
-    f'Successfully joined {len(schedule_df)} schedule items with course catalog data.'
-)
-"""
 
 #%% Include class seat restrictions
 
@@ -129,12 +150,30 @@ final_df = merged_df.merge(
     how='left'
 )
 
+# Re-order the output
+# 1. Specify the desired leading columns
+first_cols = ['Subject Code', 'Course Number', 'Section', 
+              'TITLE', 'Course Name',  'CREDIT',
+              'DAY1', 'TIME1-start', 'TIME1-end',
+              'DAY2', 'TIME2-start', 'TIME2-end',
+              'DAY3', 'TIME3-start', 'TIME3-end',
+              'TIME4-start', 'TIME4-end',
+]
+# 2. Collect all other existing columns in their original relative order
+remaining_cols = [col for col in final_df.columns if col not in first_cols]
+# 3. Combine and reorder the DataFrame
+final_df = final_df[first_cols + remaining_cols]
+# Verify the updated column order
+#print(final_df.columns[:5].tolist())
+
 # Save the updated merged DataFrame
 final_df.to_excel('merged_course_schedule.xlsx', index=False)
 print(f'Saved merged spreadsheet. Total rows: {len(final_df)}')
 print(os.getcwd())
 
-print(r'merged_course_schedule.xlsx')
+print(r'merged_course_schedule.xlsx');
+
+
 import re
 import io
 import requests
