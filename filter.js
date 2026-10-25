@@ -104,6 +104,10 @@ function filterCourses() {
   const wiOnly = document.getElementById('wiOnly').checked;
   const noPrereqOnly = document.getElementById('noPrereqOnly').checked;
 
+  // Safe fetch for department dropdown value
+  const deptEl = document.getElementById('deptFilter');
+  const selectedDept = deptEl ? deptEl.value : 'all';
+
   const cards = document.querySelectorAll('.course-card');
   let visibleCount = 0;
 
@@ -112,10 +116,17 @@ function filterCourses() {
 
 
 	// Check manual hide status first
-	if (card.getAttribute('data-user-hidden') === 'true') {
-		show = false;
-	}
-  
+    if (card.getAttribute('data-user-hidden') === 'true') {
+      show = false;
+    }
+
+    // Filter by department
+    if (show && selectedDept !== 'all') {
+      const cardDept = card.getAttribute('data-subject');
+      if (cardDept !== selectedDept) {
+        show = false;
+      }
+    }
     // 1. Search Query Filter
     if (query !== '') {
       const cardText = card.innerText.toLowerCase();
@@ -190,12 +201,12 @@ function filterCourses() {
 
     // Toggle Visibility
 	if (show) {
-		card.classList.remove('hidden');
-		visibleCount++;
-	  } else {
-		card.classList.add('hidden');
-	  }
-	});
+      card.classList.remove('hidden');
+      visibleCount++;
+    } else {
+      card.classList.add('hidden');
+    }
+  });
 
   const counterEl = document.getElementById('courseCounter');
   if (counterEl) {
@@ -205,6 +216,7 @@ function filterCourses() {
 
 function resetFilters() {
   // Reset text and dropdown inputs
+  document.getElementById('deptFilter').value = 'all';
   document.getElementById('searchInput').value = '';
   document.getElementById('classYearFilter').value = 'all';
   document.getElementById('timeBeforeSelect').value = '';
@@ -225,12 +237,13 @@ function resetFilters() {
 
 // Attach Event Listeners on DOM Load
 window.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('searchInput').addEventListener('input', filterCourses);
-  document.getElementById('classYearFilter').addEventListener('change', filterCourses);
-  document.getElementById('timeBeforeSelect').addEventListener('change', filterCourses);
-  document.getElementById('timeAfterSelect').addEventListener('change', filterCourses);
-  document.getElementById('wiOnly').addEventListener('change', filterCourses);
-  document.getElementById('noPrereqOnly').addEventListener('change', filterCourses);
+  document.getElementById('searchInput')?.addEventListener('input', filterCourses);
+  document.getElementById('classYearFilter')?.addEventListener('change', filterCourses);
+  document.getElementById('deptFilter')?.addEventListener('change', filterCourses); // Moved here!
+  document.getElementById('timeBeforeSelect')?.addEventListener('change', filterCourses);
+  document.getElementById('timeAfterSelect')?.addEventListener('change', filterCourses);
+  document.getElementById('wiOnly')?.addEventListener('change', filterCourses);
+  document.getElementById('noPrereqOnly')?.addEventListener('change', filterCourses);
 
   filterCourses();
 });

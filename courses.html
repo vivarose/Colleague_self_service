@@ -291,7 +291,71 @@
               <option value="4th-years">4th-Year Student</option>
             </select>
           </div>
-
+		  <!-- Department Code Filter Dropdown -->
+		  <div class="filter-group">
+		    <label for="deptFilter">Department</label>
+		    <select id="deptFilter">
+		    	<option value="all">All Departments</option>
+<option value="AFRST">AFRST — Africana Studies</option>
+<option value="AIIS">AIIS — American Indian and Indigenous Studies</option>
+<option value="AMST">AMST — American Studies</option>
+<option value="ANTHR">ANTHR — Anthropology</option>
+<option value="ARABC">ARABC — Arabic</option>
+<option value="ARCH">ARCH — Archaeology</option>
+<option value="ART">ART — Art</option>
+<option value="ARTH">ARTH — Art History</option>
+<option value="ASNST">ASNST — Asian Studies</option>
+<option value="BICHM">BICHM — Biochemistry/Molecular Biology</option>
+<option value="BIO">BIO — Biology</option>
+<option value="CHEM">CHEM — Chemistry</option>
+<option value="CHNSE">CHNSE — Chinese</option>
+<option value="CLASC">CLASC — Classical Studies</option>
+<option value="CNMS">CNMS — Cinema and Media Studies</option>
+<option value="COLEG">COLEG — College Courses and Seminars</option>
+<option value="CPSCI">CPSCI — Computer Science</option>
+<option value="CRWR">CRWR — Creative Writing</option>
+<option value="DANCE">DANCE — Dance and Movement Studies</option>
+<option value="DARTS">DARTS — Digital Arts</option>
+<option value="ECON">ECON — Economics</option>
+<option value="EDUC">EDUC — Education Studies</option>
+<option value="ENVST">ENVST — Environmental Studies</option>
+<option value="FRNCH">FRNCH — French and Francophone Studies</option>
+<option value="GEOSC">GEOSC — Geosciences</option>
+<option value="GERMN">GERMN — German Studies</option>
+<option value="GOVT">GOVT — Government</option>
+<option value="GREEK">GREEK — Greek</option>
+<option value="HIST">HIST — History</option>
+<option value="HSPST">HSPST — Hispanic Studies</option>
+<option value="ITALN">ITALN — Italian</option>
+<option value="JAPN">JAPN — Japanese</option>
+<option value="JLJS">JLJS — Jurisprudence, Law, and Justice Studies</option>
+<option value="JWST">JWST — Jewish Studies</option>
+<option value="LATIN">LATIN — Latin</option>
+<option value="LIT">LIT — Literature</option>
+<option value="LTAM">LTAM — Latin American Studies</option>
+<option value="MATH">MATH — Mathematics and Statistics</option>
+<option value="MATH">MATH — Mathematics</option>
+<option value="MDRST">MDRST — Medieval and Renaissance Studies</option>
+<option value="MEIWS">MEIWS — Middle East and Islamic World Studies</option>
+<option value="MUSIC">MUSIC — Performance</option>
+<option value="MUSIC">MUSIC — Literature and History of Music</option>
+<option value="MUSIC">MUSIC — Theory and Composition</option>
+<option value="MUSIC">MUSIC — Music</option>
+<option value="NEURO">NEURO — Neuroscience</option>
+<option value="PHIL">PHIL — Philosophy</option>
+<option value="PHYS">PHYS — Physics</option>
+<option value="PPOL">PPOL — Public Policy</option>
+<option value="PSYCH">PSYCH — Psychology</option>
+<option value="RELST">RELST — Religious Studies</option>
+<option value="RSNST">RSNST — Translation</option>
+<option value="RSNST">RSNST — Russian Studies</option>
+<option value="RUSSN">RUSSN — Russian Language</option>
+<option value="SOC">SOC — Sociology</option>
+<option value="THETR">THETR — Theatre</option>
+<option value="WMGST">WMGST — Women's and Gender Studies</option>
+<option value="WMGST">WMGST — Womens and Gender Studies</option>
+		    </select>
+		  </div>
           <div class="filter-group">
             <label>Hide Starts Before</label>
             <select id="timeBeforeSelect">
@@ -13461,6 +13525,10 @@ function filterCourses() {
   const wiOnly = document.getElementById('wiOnly').checked;
   const noPrereqOnly = document.getElementById('noPrereqOnly').checked;
 
+  // Safe fetch for department dropdown value
+  const deptEl = document.getElementById('deptFilter');
+  const selectedDept = deptEl ? deptEl.value : 'all';
+
   const cards = document.querySelectorAll('.course-card');
   let visibleCount = 0;
 
@@ -13469,10 +13537,17 @@ function filterCourses() {
 
 
 	// Check manual hide status first
-	if (card.getAttribute('data-user-hidden') === 'true') {
-		show = false;
-	}
-  
+    if (card.getAttribute('data-user-hidden') === 'true') {
+      show = false;
+    }
+
+    // Filter by department
+    if (show && selectedDept !== 'all') {
+      const cardDept = card.getAttribute('data-subject');
+      if (cardDept !== selectedDept) {
+        show = false;
+      }
+    }
     // 1. Search Query Filter
     if (query !== '') {
       const cardText = card.innerText.toLowerCase();
@@ -13547,12 +13622,12 @@ function filterCourses() {
 
     // Toggle Visibility
 	if (show) {
-		card.classList.remove('hidden');
-		visibleCount++;
-	  } else {
-		card.classList.add('hidden');
-	  }
-	});
+      card.classList.remove('hidden');
+      visibleCount++;
+    } else {
+      card.classList.add('hidden');
+    }
+  });
 
   const counterEl = document.getElementById('courseCounter');
   if (counterEl) {
@@ -13562,6 +13637,7 @@ function filterCourses() {
 
 function resetFilters() {
   // Reset text and dropdown inputs
+  document.getElementById('deptFilter').value = 'all';
   document.getElementById('searchInput').value = '';
   document.getElementById('classYearFilter').value = 'all';
   document.getElementById('timeBeforeSelect').value = '';
@@ -13582,12 +13658,13 @@ function resetFilters() {
 
 // Attach Event Listeners on DOM Load
 window.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('searchInput').addEventListener('input', filterCourses);
-  document.getElementById('classYearFilter').addEventListener('change', filterCourses);
-  document.getElementById('timeBeforeSelect').addEventListener('change', filterCourses);
-  document.getElementById('timeAfterSelect').addEventListener('change', filterCourses);
-  document.getElementById('wiOnly').addEventListener('change', filterCourses);
-  document.getElementById('noPrereqOnly').addEventListener('change', filterCourses);
+  document.getElementById('searchInput')?.addEventListener('input', filterCourses);
+  document.getElementById('classYearFilter')?.addEventListener('change', filterCourses);
+  document.getElementById('deptFilter')?.addEventListener('change', filterCourses); // Moved here!
+  document.getElementById('timeBeforeSelect')?.addEventListener('change', filterCourses);
+  document.getElementById('timeAfterSelect')?.addEventListener('change', filterCourses);
+  document.getElementById('wiOnly')?.addEventListener('change', filterCourses);
+  document.getElementById('noPrereqOnly')?.addEventListener('change', filterCourses);
 
   filterCourses();
 });

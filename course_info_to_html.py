@@ -26,6 +26,28 @@ TEACHING_METHODS = {
     'WKS': 'Workshop',
 }
 
+def build_dept_options(df):
+    """Extracts unique subject codes and names and builds HTML <option> tags."""
+    if 'Subject Code' in df.columns:
+        code_col = 'Subject Code'
+        name_col = 'Subject Name' if 'Subject Name' in df.columns else None
+    elif 'SUBJ' in df.columns:
+        code_col = 'SUBJ'
+        name_col = None
+    else:
+        return '<option value="all">All Departments</option>'
+
+    subset = df[[code_col] + ([name_col] if name_col else [])].dropna().drop_duplicates()
+    subset = subset.sort_values(by=code_col)
+
+    options = ['<option value="all">All Departments</option>']
+    for _, row in subset.iterrows():
+        code = str(row[code_col]).strip()
+        name = str(row[name_col]).strip() if name_col and pd.notna(row[name_col]) else code
+        options.append(f'<option value="{code}">{code} — {name}</option>')
+    
+    return '\n'.join(options)
+
 DAY_MAP = {'M': 'Mon', 'T': 'Tue', 'W': 'Wed', 'R': 'Thu', 'F': 'Fri'}
 
 
@@ -398,13 +420,20 @@ if __name__ == '__main__':
 
             df = pd.read_excel(excel_file)
             print(f'Loaded {len(df)} course rows from {excel_file}.')
-
+            
+            # 1. Generate course card HTML string
             full_course_html = display_course_info(df)
+            
+            # 2. Build department dropdown options string
+            dept_options = build_dept_options(df)
 
+            # 3. Replace all placeholders on template_text
             final_html = template_text.replace(
                 '{{FULL_TEXT_PLACEHOLDER}}', full_course_html
             ).replace(
                 '{{FILTER_JS_PLACEHOLDER}}', js_text
+            ).replace(
+                '{{DEPT_OPTIONS_PLACEHOLDER}}', dept_options
             )
 
             with open('courses.html', 'w', encoding='utf-8') as f:
