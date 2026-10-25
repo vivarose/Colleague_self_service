@@ -6,7 +6,7 @@
 
 import html
 import json
-import os
+#import os
 import re
 import pandas as pd
 
@@ -231,6 +231,12 @@ def display_course_info(data, mode='html'):
       days_str = ''.join(all_days)
       slots_json_escaped = html.escape(json.dumps(meeting_slots))
 
+      # Class year eligibility from spreadsheet columns
+      yr1 = str(row.get('1st-years', 'ok')).strip().lower()
+      yr2 = str(row.get('2nd-years', 'ok')).strip().lower()
+      yr3 = str(row.get('3rd-years', 'ok')).strip().lower()
+      yr4 = str(row.get('4th-years', 'ok')).strip().lower()
+
       is_wi = (
           'true'
           if str(row.get('Writing-intensive', '')).strip().upper() == 'W'
@@ -343,7 +349,10 @@ def display_course_info(data, mode='html'):
               f'<div class="course-card" data-subject="{subj}"'
               f' data-days="{days_str}" data-start-min="{min_start}"'
               f' data-end-min="{max_end}" data-wi="{is_wi}"'
-              f' data-slots="{slots_json_escaped}" style="font-family:'
+              f' data-slots="{slots_json_escaped}"'
+              f' data-1st-years="{yr1}" data-2nd-years="{yr2}"'
+              f' data-3rd-years="{yr3}" data-4th-years="{yr4}"'
+              ' style="font-family:'
               " 'Segoe UI', Arial, sans-serif; border: 1px solid #d0d7de;"
               ' border-radius: 8px; padding: 18px 20px; margin-bottom: 20px;'
               ' background-color: #ffffff; box-shadow: 0 2px 5px'
@@ -472,7 +481,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             background: #ffffff;
             border: 1px solid #d0d7de;
             border-radius: 8px;
-            padding: 18px 22px;
+            padding: 18px 22px 8px 22px;
             margin-bottom: 24px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.06);
             position: sticky;
@@ -483,9 +492,9 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 14px;
-            border-bottom: 1px solid #e1e4e8;
             padding-bottom: 8px;
+            cursor: pointer;
+            user-select: none;
         }
         .filter-header h2 {
             margin: 0;
@@ -504,6 +513,8 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 14px;
+            padding-top: 12px;
+            border-top: 1px solid #e1e4e8;
         }
         .filter-group {
             display: flex;
@@ -637,6 +648,33 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         .reset-btn:hover {
             background-color: #e5e7eb;
         }
+        
+        .panel-toggle-bar {
+            text-align: center;
+            margin-top: 12px;
+            padding: 6px 0 2px 0;
+            border-top: 1px solid #e1e4e8;
+            cursor: pointer;
+            color: #002f6c;
+            font-size: 13px;
+            font-weight: bold;
+            user-select: none;
+            transition: color 0.2s, background-color 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        .panel-toggle-bar:hover {
+            color: #001f48;
+            background-color: #f6f8fa;
+            border-radius: 0 0 6px 6px;
+        }
+        .caret-icon {
+            font-size: 14px;
+            transition: transform 0.2s ease;
+        }
+
         .hidden {
             display: none !important;
         }
@@ -645,80 +683,99 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 <body>
     <div class="container">
         <!-- Interactive Control Bar -->
-        <div class="filter-panel">
-            <div class="filter-header">
+        <div class="filter-panel" id="filterPanel">
+            <div class="filter-header" onclick="toggleFilterPanel()" title="Click to collapse/expand filter panel">
                 <h2>🔍 Course Filters</h2>
                 <span class="counter-badge" id="courseCounter">Loading...</span>
             </div>
             
-            <div class="filter-grid">
-                <!-- Text Search -->
-                <div class="filter-group">
-                    <label>Search Keyword</label>
-                    <input type="text" id="searchInput" placeholder="Course name, instructor, code...">
-                </div>
-
-                <!-- Exclude Before Time -->
-                <div class="filter-group">
-                    <label>Hide Starts Before</label>
-                    <select id="timeBeforeSelect">
-                        <option value="">-- No Restriction --</option>
-                        <option value="510">9:00 AM</option>
-                        <option value="600">10:00 AM</option>
-                        <option value="660">11:00 AM</option>
-                        <option value="720">12:00 PM (Noon)</option>
-                        <option value="780">1:00 PM</option>
-                    </select>
-                </div>
-
-                <!-- Exclude After Time -->
-                <div class="filter-group">
-                    <label>Hide Ends After</label>
-                    <select id="timeAfterSelect">
-                        <option value="">-- No Restriction --</option>
-                        <option value="840">2:00 PM</option>
-                        <option value="900">3:00 PM</option>
-                        <option value="960">4:00 PM</option>
-                        <option value="1020">5:00 PM</option>
-                    </select>
-                </div>
-
-                <!-- Checkbox Toggles -->
-                <div class="checkbox-group">
-                    <label><input type="checkbox" id="wiOnly"> Writing Intensive Only</label>
-                </div>
-            </div>
-
-            <!-- EXCLUDE BUSY TIME SLOTS (SCHEDULE CONFLICT FILTER) -->
-            <div class="conflict-section">
-                <div class="conflict-title">🚫 Exclude Specific Busy Time Blocks (Schedule Conflicts)</div>
-                <div class="add-block-row">
+            <div id="filterBody">
+                <div class="filter-grid">
+                    <!-- Text Search -->
                     <div class="filter-group">
-                        <label>Days</label>
-                        <div class="day-checkboxes">
-                            <label><input type="checkbox" class="busy-day" value="M"> M</label>
-                            <label><input type="checkbox" class="busy-day" value="T"> T</label>
-                            <label><input type="checkbox" class="busy-day" value="W"> W</label>
-                            <label><input type="checkbox" class="busy-day" value="R"> R</label>
-                            <label><input type="checkbox" class="busy-day" value="F"> F</label>
+                        <label>Search Keyword</label>
+                        <input type="text" id="searchInput" placeholder="Course name, instructor, code...">
+                    </div>
+                    
+                    <!-- Class Year Filter Dropdown -->
+                    <div class="filter-group">
+                      <label for="classYearFilter">Class Year</label>
+                      <select id="classYearFilter">
+                        <option value="all">All Class Years</option>
+                        <option value="1st-years">1st-Year Student</option>
+                        <option value="2nd-years">2nd-Year Student</option>
+                        <option value="3rd-years">3rd-Year Student</option>
+                        <option value="4th-years">4th-Year Student</option>
+                      </select>
+                    </div>
+
+                    <!-- Exclude Before Time -->
+                    <div class="filter-group">
+                        <label>Hide Starts Before</label>
+                        <select id="timeBeforeSelect">
+                            <option value="">-- No Restriction --</option>
+                            <option value="510">9:00 AM</option>
+                            <option value="600">10:00 AM</option>
+                            <option value="660">11:00 AM</option>
+                            <option value="720">12:00 PM (Noon)</option>
+                            <option value="780">1:00 PM</option>
+                        </select>
+                    </div>
+
+                    <!-- Exclude After Time -->
+                    <div class="filter-group">
+                        <label>Hide Ends After</label>
+                        <select id="timeAfterSelect">
+                            <option value="">-- No Restriction --</option>
+                            <option value="840">2:00 PM</option>
+                            <option value="900">3:00 PM</option>
+                            <option value="960">4:00 PM</option>
+                            <option value="1020">5:00 PM</option>
+                        </select>
+                    </div>
+
+                    <!-- Checkbox Toggles -->
+                    <div class="checkbox-group">
+                        <label><input type="checkbox" id="wiOnly"> Writing Intensive Only</label>
+                    </div>
+                </div>
+
+                <!-- EXCLUDE BUSY TIME SLOTS (SCHEDULE CONFLICT FILTER) -->
+                <div class="conflict-section">
+                    <div class="conflict-title">🚫 Exclude Specific Busy Time Blocks (Schedule Conflicts)</div>
+                    <div class="add-block-row">
+                        <div class="filter-group">
+                            <label>Days</label>
+                            <div class="day-checkboxes">
+                                <label><input type="checkbox" class="busy-day" value="M"> M</label>
+                                <label><input type="checkbox" class="busy-day" value="T"> T</label>
+                                <label><input type="checkbox" class="busy-day" value="W"> W</label>
+                                <label><input type="checkbox" class="busy-day" value="R"> R</label>
+                                <label><input type="checkbox" class="busy-day" value="F"> F</label>
+                            </div>
                         </div>
+                        <div class="filter-group">
+                            <label>Start Time</label>
+                            <input type="time" id="busyStartTime" value="10:00">
+                        </div>
+                        <div class="filter-group">
+                            <label>End Time</label>
+                            <input type="time" id="busyEndTime" value="10:50">
+                        </div>
+                        <button class="btn-add" onclick="addBusyBlock()">+ Exclude Time Block</button>
                     </div>
-                    <div class="filter-group">
-                        <label>Start Time</label>
-                        <input type="time" id="busyStartTime" value="10:00">
-                    </div>
-                    <div class="filter-group">
-                        <label>End Time</label>
-                        <input type="time" id="busyEndTime" value="10:50">
-                    </div>
-                    <button class="btn-add" onclick="addBusyBlock()">+ Exclude Time Block</button>
+
+                    <!-- List of active busy blocks -->
+                    <div class="busy-list" id="busyList"></div>
                 </div>
 
-                <!-- List of active busy blocks -->
-                <div class="busy-list" id="busyList"></div>
+                <button class="reset-btn" onclick="resetFilters()">Reset All Filters</button>
             </div>
 
-            <button class="reset-btn" onclick="resetFilters()">Reset All Filters</button>
+            <!-- Bottom Toggle Caret Bar -->
+            <div class="panel-toggle-bar" id="toggleBar" onclick="toggleFilterPanel()" title="Click to collapse/expand filters">
+                <span id="toggleText">Hide Filters</span> <span class="caret-icon" id="panelCaret">▲</span>
+            </div>
         </div>
 
         <!-- Course Cards Output -->
@@ -730,6 +787,22 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     <!-- Client-Side Filtering Engine -->
     <script>
         let busyBlocks = [];
+
+        function toggleFilterPanel() {
+            const filterBody = document.getElementById('filterBody');
+            const caret = document.getElementById('panelCaret');
+            const toggleText = document.getElementById('toggleText');
+
+            if (filterBody.classList.contains('hidden')) {
+                filterBody.classList.remove('hidden');
+                caret.textContent = '▲';
+                toggleText.textContent = 'Hide Filters';
+            } else {
+                filterBody.classList.add('hidden');
+                caret.textContent = '▼';
+                toggleText.textContent = 'Show Filters';
+            }
+        }
 
         function parseTimeStringToMinutes(timeStr) {
             if (!timeStr) return null;
@@ -800,6 +873,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
         function filterCourses() {
             const query = document.getElementById('searchInput').value.toLowerCase().trim();
+            const selectedYear = document.getElementById('classYearFilter').value;
             const hideBefore = parseInt(document.getElementById('timeBeforeSelect').value, 10);
             const hideAfter = parseInt(document.getElementById('timeAfterSelect').value, 10);
             const wiOnly = document.getElementById('wiOnly').checked;
@@ -818,7 +892,15 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                     }
                 }
 
-                // 2. Hide courses starting before selected time
+                // 2. Class Year Filter
+                if (show && selectedYear !== 'all') {
+                    const yearStatus = card.getAttribute(`data-${selectedYear}`);
+                    if (yearStatus === 'no') {
+                        show = false;
+                    }
+                }
+
+                // 3. Hide courses starting before selected time
                 if (show && !isNaN(hideBefore)) {
                     const startMin = parseInt(card.getAttribute('data-start-min'), 10);
                     if (!isNaN(startMin) && startMin < hideBefore) {
@@ -826,7 +908,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                     }
                 }
 
-                // 3. Hide courses ending after selected time
+                // 4. Hide courses ending after selected time
                 if (show && !isNaN(hideAfter)) {
                     const endMin = parseInt(card.getAttribute('data-end-min'), 10);
                     if (!isNaN(endMin) && endMin > hideAfter) {
@@ -834,14 +916,14 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                     }
                 }
 
-                // 4. Writing Intensive filter
+                // 5. Writing Intensive filter
                 if (show && wiOnly) {
                     if (card.getAttribute('data-wi') !== 'true') {
                         show = false;
                     }
                 }
 
-                // 5. Exclude Schedule Conflicts (Busy Time Blocks)
+                // 6. Exclude Schedule Conflicts (Busy Time Blocks)
                 if (show && busyBlocks.length > 0) {
                     const slotsRaw = card.getAttribute('data-slots');
                     if (slotsRaw) {
@@ -882,6 +964,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
         function resetFilters() {
             document.getElementById('searchInput').value = '';
+            document.getElementById('classYearFilter').value = 'all';
             document.getElementById('timeBeforeSelect').value = '';
             document.getElementById('timeAfterSelect').value = '';
             document.getElementById('wiOnly').checked = false;
@@ -894,6 +977,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         }
 
         document.getElementById('searchInput').addEventListener('input', filterCourses);
+        document.getElementById('classYearFilter').addEventListener('change', filterCourses);
         document.getElementById('timeBeforeSelect').addEventListener('change', filterCourses);
         document.getElementById('timeAfterSelect').addEventListener('change', filterCourses);
         document.getElementById('wiOnly').addEventListener('change', filterCourses);
