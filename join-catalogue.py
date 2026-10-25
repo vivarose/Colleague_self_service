@@ -70,10 +70,30 @@ extracted_keys = schedule_df['COURSE_NO'].astype(str).str.extract(
 schedule_df['Subject Code'] = extracted_keys[0].str.strip()
 schedule_df['Course Number'] = extracted_keys[1].str.strip()
 
-# 4. Perform a left join keeping all rows from schedule_df
+
+# 4. Perform a left join keeping all rows from schedule_df, using indicator=True
 merged_df = schedule_df.merge(
-    courses_df, on=['Subject Code', 'Course Number'], how='left'
+    courses_df, on=['Subject Code', 'Course Number'], how='left', indicator=True
 )
+
+# Identify courses in schedule_df that were not found in courses_df
+unmatched = merged_df[merged_df['_merge'] == 'left_only'][
+    ['Subject Code', 'Course Number', 'COURSE_NO']
+].drop_duplicates()
+
+if not unmatched.empty:
+    print(
+        f"\n⚠️ WARNING: {len(unmatched)} course(s) in the schedule were not found in the course catalog:"
+    )
+    for _, row in unmatched.iterrows():
+        print(
+            f"  - {row['Subject Code']} {row['Course Number']} (Schedule Code: {str(row['COURSE_NO']).strip()})"
+        )
+else:
+    print("\n All schedule courses were successfully matched in the catalog!")
+
+# Remove the temporary merge indicator column
+merged_df.drop(columns=['_merge'], inplace=True)
 
 #%% Include class seat restrictions
 
