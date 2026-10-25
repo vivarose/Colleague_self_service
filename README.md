@@ -95,4 +95,4 @@ pip install pandas openpyxl
 ## 📜 Credits & Maintenance
 
 - **Author:** Viva R. Horowitz (Department of Physics, Hamilton College) with Google Gemini
-- **Collaborators & Contributors:** Courtney Gibbons
+- **Inspiration:** Prof. Courtney Gibbons
