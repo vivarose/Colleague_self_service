@@ -192,7 +192,174 @@ final_df = merged_df.merge(
     how='left'
 )
 
-# Re-order the output
+#%% Determine Class Year Eligibility with Compact Audit Output
+
+def determine_class_year_eligibility(row):
+    """
+    Evaluates eligibility ('ok' or 'No') for 1st, 2nd, 3rd, and 4th year students
+    using explicit seat caps first, then falling back to text parsing.
+    
+    Ignores exclusion rules that target specific majors/concentrators (e.g., "Not open to Sr ECON concentrators")
+    so general students in that class year remain marked as 'ok'.
+    """
+    year_cap_map = {
+        '1st-years': row.get('Fr Cap'),
+        '2nd-years': row.get('So Cap'),
+        '3rd-years': row.get('Jr Cap'),
+        '4th-years': row.get('Sr Cap')
+    }
+    
+    status = {}
+    has_explicit_caps = False
+    
+    # Step 1: Check explicit class seat caps from PDF
+    for year_key, cap_val in year_cap_map.items():
+        if pd.notna(cap_val) and str(cap_val).strip() != '':
+            has_explicit_caps = True
+            val_str = str(cap_val).strip().upper()
+            try:
+                num = float(val_str)
+                status[year_key] = 'ok' if num > 0 else 'No'
+            except ValueError:
+                if 'OPEN' in val_str:
+                    status[year_key] = 'ok'
+                elif val_str == '0':
+                    status[year_key] = 'No'
+                else:
+                    status[year_key] = 'ok'
+
+    # If all explicit caps were found in PDF data, return immediately
+    if has_explicit_caps and len(status) == 4:
+        return pd.Series(status)
+
+    # Step 2: Fall back to text parsing
+    text_fields = {
+        'COMMENTS': str(row.get('COMMENTS', '')),
+        'Notes': str(row.get('Notes', '')),
+        'Prerequisites': str(row.get('Prerequisites', '')),
+        'Prerequisite Narrative': str(row.get('Prerequisite Narrative', '')),
+        'Course Description': str(row.get('Course Description', ''))
+    }
+    
+    raw_combined = ' '.join([v for v in text_fields.values() if v and v.lower() != 'nan'])
+    cleaned = re.sub(r'<[^>]+>', ' ', raw_combined)
+    cleaned = cleaned.replace('\xa0', ' ').replace('&nbsp;', ' ')
+    combined_text = re.sub(r'\s+', ' ', cleaned).strip()
+    
+    if not combined_text:
+        return pd.Series({'1st-years': 'ok', '2nd-years': 'ok', '3rd-years': 'ok', '4th-years': 'ok'})
+
+    # Class year regex patterns (flexible punctuation & word boundaries)
+    fr_pattern = r'(?:\bfirst[\s-]years?|\bfreshm[ae]n|\bfrs?\b\.?|\b1st\b)'
+    so_pattern = r'(?:\bsophs?\b\.?|\bsophomores?|\bsos?\b\.?|\bsecond[\s-]years?|\b2nd\b)'
+    jr_pattern = r'(?:\bjuniors?|\bjrs?\b\.?|\bthird[\s-]years?|\b3rd\b)'
+    sr_pattern = r'(?:\bseniors?|\bsrs?\b\.?|\bfourth[\s-]years?|\b4th\b)'
+    
+    consent_pattern = r'(?:with|by)\s+(?:the\s+)?(?:instructor\'?s?\s+|department\'?s?\s+)?(?:consent|permission)'
+    major_concentrator_pattern = r'\b(?:concentrators?|majors?|minors?)\b'
+    
+    text_status = {'1st-years': 'ok', '2nd-years': 'ok', '3rd-years': 'ok', '4th-years': 'ok'}
+    matched_snippet = None
+    
+    pos_boundary = r'(?=\s*;\s*|\s*\n\s*|\.(?:\s+[A-Z]|\s*$)|(?:\s+not\s+open\s+to|\s+closed\s+to)|$)'
+    excl_boundary = r'(?=\s*;\s*|\s*\n\s*|\.(?:\s+[A-Z]|\s*$)|(?:\s+open\s+to|\s+limited\s+to|\s+restricted\s+to|\s+must\s+|\bprerequisite:?)|$)'
+
+    # 1. Positive restriction patterns
+    positive_patterns = [
+        r'(?:must\s+have|must\s+be|requires?|prerequisite:?)\s+([^.;\n]+?)\s+(?:standing|status|class\s+standing|class\s+year|class\s+of)',
+        r'([^.;\n]+?)\s+(?:standing|status)\s+(?:required|necessary|needed)',
+        r'\b(?<!not\s)(?<!never\s)open\s+to\s+(.*?)' + pos_boundary,
+        r'(?:limited\s+to|restricted\s+to)\s+(.*?)' + pos_boundary,
+        r'\b([^.;\n]+?)\s+only\b'
+    ]
+    
+    for pat in positive_patterns:
+        m = re.search(pat, combined_text, re.IGNORECASE)
+        if m:
+            group_str = m.group(1).lower()
+            full_match = m.group(0)
+            
+            # Skip if 'only' / 'open to' is modified by consent/permission requirements
+            if re.search(consent_pattern, full_match, re.IGNORECASE):
+                continue
+            
+            has_fr = bool(re.search(fr_pattern, group_str, re.IGNORECASE))
+            has_so = bool(re.search(so_pattern, group_str, re.IGNORECASE))
+            has_jr = bool(re.search(jr_pattern, group_str, re.IGNORECASE))
+            has_sr = bool(re.search(sr_pattern, group_str, re.IGNORECASE))
+            
+            if re.search(r'or\s+higher|or\s+above|and\s+above|\+', full_match, re.IGNORECASE):
+                if has_so:
+                    has_so = has_jr = has_sr = True
+                elif has_jr:
+                    has_jr = has_sr = True
+                elif has_fr:
+                    has_fr = has_so = has_jr = has_sr = True
+
+            if has_fr or has_so or has_jr or has_sr:
+                text_status['1st-years'] = 'ok' if has_fr else 'No'
+                text_status['2nd-years'] = 'ok' if has_so else 'No'
+                text_status['3rd-years'] = 'ok' if has_jr else 'No'
+                text_status['4th-years'] = 'ok' if has_sr else 'No'
+                matched_snippet = full_match
+                break
+
+    # 2. Exclusion patterns ("Not open to ...")
+    not_open_match = re.search(
+        r'(?:not\s+open\s+to|closed\s+to)\s+(.*?)' + excl_boundary, 
+        combined_text, 
+        re.IGNORECASE
+    )
+    if not_open_match:
+        excluded_str = not_open_match.group(1).lower()
+        
+        # Guard: If the exclusion targets department majors/concentrators (e.g. "Sr ECON concentrators"),
+        # general class-year eligibility remains 'ok' for that year.
+        if not re.search(major_concentrator_pattern, excluded_str, re.IGNORECASE):
+            has_excl = False
+            if re.search(fr_pattern, excluded_str, re.IGNORECASE):
+                text_status['1st-years'] = 'No'
+                has_excl = True
+            if re.search(so_pattern, excluded_str, re.IGNORECASE):
+                text_status['2nd-years'] = 'No'
+                has_excl = True
+            if re.search(jr_pattern, excluded_str, re.IGNORECASE):
+                text_status['3rd-years'] = 'No'
+                has_excl = True
+            if re.search(sr_pattern, excluded_str, re.IGNORECASE):
+                text_status['4th-years'] = 'No'
+                has_excl = True
+                
+            if has_excl and not matched_snippet:
+                matched_snippet = not_open_match.group(0)
+
+    # Step 3: Override text results with explicit PDF caps wherever available
+    for key in ['1st-years', '2nd-years', '3rd-years', '4th-years']:
+        if key in status:
+            text_status[key] = status[key]
+
+    # Step 4: Compact Audit Output
+    if any(text_status[k] == 'No' for k in ['1st-years', '2nd-years', '3rd-years', '4th-years']):
+        subj = str(row.get('Subject Code', '')).strip()
+        num = str(row.get('Course Number+', row.get('Course Number', ''))).strip()
+        course_id = f"{subj} {num}".strip()
+        
+        interpretation = ", ".join([f"{v}" for k, v in text_status.items()])
+        snippet_display = matched_snippet if matched_snippet else combined_text
+        
+        print(f"🔍{course_id}", f"   \"{snippet_display}\"", f"   {interpretation}\n")
+
+    return pd.Series(text_status)
+
+# Apply evaluation function across DataFrame
+year_cols = ['1st-years', '2nd-years', '3rd-years', '4th-years']
+final_df[year_cols] = final_df.apply(determine_class_year_eligibility, axis=1)
+
+# Apply evaluation function across DataFrame
+year_cols = ['1st-years', '2nd-years', '3rd-years', '4th-years']
+final_df[year_cols] = final_df.apply(determine_class_year_eligibility, axis=1)
+
+#%% Re-order the output and save
 # 1. Specify the desired leading columns
 first_cols = ['Subject Code', 'Course Number+', 'Section', 
               'TITLE', 'Course Name',  'CREDIT',
