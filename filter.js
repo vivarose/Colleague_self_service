@@ -88,6 +88,14 @@ function renderBusyChips() {
   });
 }
 
+function hideCourseCard(btn) {
+  const card = btn.closest('.course-card');
+  card.setAttribute('data-user-hidden', 'true');
+  filterCourses();
+}
+
+
+
 function filterCourses() {
   const query = document.getElementById('searchInput').value.toLowerCase().trim();
   const selectedYear = document.getElementById('classYearFilter').value;
@@ -102,6 +110,12 @@ function filterCourses() {
   cards.forEach(card => {
     let show = true;
 
+
+	// Check manual hide status first
+	if (card.getAttribute('data-user-hidden') === 'true') {
+		show = false;
+	}
+  
     // 1. Search Query Filter
     if (query !== '') {
       const cardText = card.innerText.toLowerCase();
@@ -175,13 +189,13 @@ function filterCourses() {
     }
 
     // Toggle Visibility
-    if (show) {
-      card.classList.remove('hidden');
-      visibleCount++;
-    } else {
-      card.classList.add('hidden');
-    }
-  });
+	if (show) {
+		card.classList.remove('hidden');
+		visibleCount++;
+	  } else {
+		card.classList.add('hidden');
+	  }
+	});
 
   const counterEl = document.getElementById('courseCounter');
   if (counterEl) {
@@ -190,17 +204,22 @@ function filterCourses() {
 }
 
 function resetFilters() {
+  // Reset text and dropdown inputs
   document.getElementById('searchInput').value = '';
   document.getElementById('classYearFilter').value = 'all';
   document.getElementById('timeBeforeSelect').value = '';
   document.getElementById('timeAfterSelect').value = '';
+
+  // Reset checkboxes
   document.getElementById('wiOnly').checked = false;
   document.getElementById('noPrereqOnly').checked = false;
 
+  // Clear schedule conflict selections
   document.querySelectorAll('.busy-day').forEach(cb => cb.checked = false);
   busyBlocks = [];
   renderBusyChips();
 
+  // Re-run filter engine to unhide all cards and update counter
   filterCourses();
 }
 
