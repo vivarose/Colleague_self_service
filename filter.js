@@ -1,3 +1,5 @@
+// Hamilton Course Explorer Filtering Logic
+
 let busyBlocks = [];
 
 function toggleFilterPanel() {
@@ -181,10 +183,9 @@ function filterCourses() {
     }
   });
 
-  // Update Counter Badge
-  const counterBadge = document.getElementById('courseCounter');
-  if (counterBadge) {
-    counterBadge.textContent = `Showing ${visibleCount} of ${cards.length} courses`;
+  const counterEl = document.getElementById('courseCounter');
+  if (counterEl) {
+    counterEl.textContent = `Showing ${visibleCount} of ${cards.length} courses`;
   }
 }
 

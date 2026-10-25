@@ -11,6 +11,8 @@ import os
 import re
 import pandas as pd
 
+os.chdir(r'C:\Users\vhorowit\Documents\GitHub\Colleague_self_service')
+
 TEACHING_METHODS = {
     'LEC': None,
     'SEM': 'Seminar',
@@ -119,8 +121,8 @@ def clean_title(title_str):
         return s
 
     small_words = {
-        'a', 'an', 'and', 'as', 'at', 'but', 'by', 'for',
-        'in', 'nor', 'of', 'on', 'or', 'so', 'the', 'to', 'up', 'yet'
+        'a', 'an', 'and', 'as', 'at', 'but', 'by', 'for', 'in',
+        'nor', 'of', 'on', 'or', 'so', 'the', 'to', 'up', 'yet',
     }
     roman_pattern = r'^(?i:M{0,4}(C[MD]|D?C{0,3})(X[CL]|L?X{0,3})(I[XV]|V?I{0,3}))$'
 
@@ -203,17 +205,11 @@ def display_course_info(data, mode='html'):
                 en_min = time_to_minutes(row.get(f'TIME{i}-end'))
                 d_code = str(row.get(f'DAY{i}', '')).strip()
 
-                if (
-                    st_min is not None
-                    and en_min is not None
-                    and is_valid(d_code)
-                ):
+                if st_min is not None and en_min is not None and is_valid(d_code):
                     all_starts.append(st_min)
                     all_ends.append(en_min)
                     all_days.append(d_code)
-                    meeting_slots.append(
-                        {'days': d_code, 'start': st_min, 'end': en_min}
-                    )
+                    meeting_slots.append({'days': d_code, 'start': st_min, 'end': en_min})
 
             min_start = str(min(all_starts)) if all_starts else ''
             max_end = str(max(all_ends)) if all_ends else ''
@@ -231,9 +227,7 @@ def display_course_info(data, mode='html'):
                 else 'false'
             )
 
-            prereq = row.get('Prerequisite Narrative') or row.get(
-                'Prerequisites'
-            )
+            prereq = row.get('Prerequisite Narrative') or row.get('Prerequisites')
             prereq_display = str(prereq).strip() if is_valid(prereq) else None
             has_prereq = 'true' if prereq_display else 'false'
 
@@ -290,18 +284,14 @@ def display_course_info(data, mode='html'):
                         time_str += f' @ {room}'
                     schedules.append(time_str)
 
-            schedule_display = (
-                ' &nbsp;|&nbsp; '.join(schedules) if schedules else 'TBA'
-            )
+            schedule_display = ' &nbsp;|&nbsp; '.join(schedules) if schedules else 'TBA'
 
             instructors = []
             for i in range(1, 5):
                 inst = str(row.get(f'INSTRUCTOR{i}', '')).strip()
                 if is_valid(inst) and inst not in instructors:
                     instructors.append(inst)
-            instructor_display = (
-                ', '.join(instructors) if instructors else 'TBA'
-            )
+            instructor_display = ', '.join(instructors) if instructors else 'TBA'
 
             cap_parts = []
             max_cap = row.get('MAXCAP') or row.get('Sec Capacity')
@@ -309,12 +299,7 @@ def display_course_info(data, mode='html'):
                 cap_parts.append(f'{clean_num(max_cap)} Seats')
 
             seat_breakdown = []
-            for yr, label in [
-                ('Fr Cap', 'Fr'),
-                ('So Cap', 'So'),
-                ('Jr Cap', 'Jr'),
-                ('Sr Cap', 'Sr'),
-            ]:
+            for yr, label in [('Fr Cap', 'Fr'), ('So Cap', 'So'), ('Jr Cap', 'Jr'), ('Sr Cap', 'Sr')]:
                 v = row.get(yr)
                 if is_valid(v):
                     seat_breakdown.append(f'{label}: {clean_num(v)}')
@@ -324,75 +309,45 @@ def display_course_info(data, mode='html'):
 
             capacity_display = ' '.join(cap_parts) if cap_parts else 'N/A'
 
-            cross_list = row.get('Cross Listed Courses Narrative') or row.get(
-                'Cross Listed Courses'
-            )
-            cross_display = (
-                str(cross_list).strip().strip(',')
-                if is_valid(cross_list)
-                else None
-            )
+            cross_list = row.get('Cross Listed Courses Narrative') or row.get('Cross Listed Courses')
+            cross_display = str(cross_list).strip().strip(',') if is_valid(cross_list) else None
 
-            comments_display = clean_comments_notes(
-                row.get('COMMENTS'), row.get('Notes')
-            )
+            comments_display = clean_comments_notes(row.get('COMMENTS'), row.get('Notes'))
 
             card = [
-                (
-                    f'<div class="course-card" data-subject="{subj}"'
-                    f' data-days="{days_str}" data-start-min="{min_start}"'
-                    f' data-end-min="{max_end}" data-wi="{is_wi}"'
-                    f' data-has-prereq="{has_prereq}"'
-                    f' data-slots="{slots_json_escaped}"'
-                    f' data-1st-years="{yr1}" data-2nd-years="{yr2}"'
-                    f' data-3rd-years="{yr3}" data-4th-years="{yr4}"'
-                    ' style="font-family:'
-                    " 'Segoe UI', Arial, sans-serif; border: 1px solid #d0d7de;"
-                    ' border-radius: 8px; padding: 18px 20px; margin-bottom:'
-                    ' 20px; background-color: #ffffff; box-shadow: 0 2px 5px'
-                    ' rgba(0,0,0,0.05);">'
-                ),
-                (
-                    " <div style='border-bottom: 2px solid #002f6c; padding-bottom:"
-                    " 8px; margin-bottom: 14px;'>"
-                ),
-                (
-                    " <h3 style='margin: 0; color: #002f6c; font-size: 19px;"
-                    f" font-weight: 700;'>{full_title}</h3>"
-                ),
+                f'<div class="course-card" data-subject="{subj}"'
+                f' data-days="{days_str}" data-start-min="{min_start}"'
+                f' data-end-min="{max_end}" data-wi="{is_wi}"'
+                f' data-has-prereq="{has_prereq}"'
+                f' data-slots="{slots_json_escaped}"'
+                f' data-1st-years="{yr1}" data-2nd-years="{yr2}"'
+                f' data-3rd-years="{yr3}" data-4th-years="{yr4}"'
+                ' style="font-family: \'Segoe UI\', Arial, sans-serif; border: 1px solid #d0d7de;'
+                ' border-radius: 8px; padding: 18px 20px; margin-bottom: 20px; background-color: #ffffff;'
+                ' box-shadow: 0 2px 5px rgba(0,0,0,0.05);">',
+                ' <div style=\'border-bottom: 2px solid #002f6c; padding-bottom: 8px; margin-bottom: 14px;\'>',
+                f' <h3 style=\'margin: 0; color: #002f6c; font-size: 19px; font-weight: 700;\'>{full_title}</h3>',
             ]
 
             if subtitle_str:
                 card.append(
-                    " <div style='margin-top: 4px; font-size: 13px; color:"
-                    f" #57606a; font-weight: 600;'>{subtitle_str}</div>"
+                    f" <div style='margin-top: 4px; font-size: 13px; color: #57606a; font-weight: 600;'>{subtitle_str}</div>"
                 )
 
             card.append(' </div>')
-            card.append(
-                " <div style='font-size: 14px; line-height: 1.8; color:"
-                " #24292f;'>"
-            )
+            card.append(" <div style='font-size: 14px; line-height: 1.8; color: #24292f;'>")
             card.append(f' <div>🕒 <b>Schedule:</b> {schedule_display}</div>')
-            card.append(
-                f' <div>👤 <b>Instructor:</b> {instructor_display}</div>'
-            )
+            card.append(f' <div>👤 <b>Instructor:</b> {instructor_display}</div>')
             card.append(f' <div>👥 <b>Capacity:</b> {capacity_display}</div>')
 
             if cross_display:
-                card.append(
-                    f' <div>🔀 <b>Cross-listed:</b> {cross_display}</div>'
-                )
+                card.append(f' <div>🔀 <b>Cross-listed:</b> {cross_display}</div>')
 
             if prereq_display:
-                card.append(
-                    f' <div>📋 <b>Prerequisites:</b> {prereq_display}</div>'
-                )
+                card.append(f' <div>📋 <b>Prerequisites:</b> {prereq_display}</div>')
 
             if comments_display:
-                card.append(
-                    f' <div>💬 <b>Comments:</b> {comments_display}</div>'
-                )
+                card.append(f' <div>💬 <b>Comments:</b> {comments_display}</div>')
 
             card.append(' </div>')
 
@@ -401,15 +356,12 @@ def display_course_info(data, mode='html'):
                 cleaned_desc = clean_html(desc)
                 card.append(" <div style='margin-top: 14px;'>")
                 card.append(
-                    " <div style='font-size: 12px; font-weight: 700; color:"
-                    ' #57606a; text-transform: uppercase; letter-spacing:'
-                    " 0.5px; margin-bottom: 4px;'>📖 Description</div>"
+                    " <div style='font-size: 12px; font-weight: 700; color: #57606a; text-transform: uppercase;"
+                    " letter-spacing: 0.5px; margin-bottom: 4px;'>📖 Description</div>"
                 )
                 card.append(
-                    " <div style='font-size: 14px; color: #24292f; line-height:"
-                    ' 1.6; background-color: #f6f8fa; border-left: 4px solid'
-                    ' #002f6c; padding: 10px 14px; border-radius: 0 6px 6px'
-                    f" 0;'>{cleaned_desc}</div>"
+                    " <div style='font-size: 14px; color: #24292f; line-height: 1.6; background-color: #f6f8fa;"
+                    f" border-left: 4px solid #002f6c; padding: 10px 14px; border-radius: 0 6px 6px 0;'>{cleaned_desc}</div>"
                 )
                 card.append(' </div>')
 
@@ -419,41 +371,41 @@ def display_course_info(data, mode='html'):
         return '\n'.join(html_cards)
 
 
+def load_file_content(filename):
+    """Loads text content from a file in the current directory."""
+    if not os.path.exists(filename):
+        raise FileNotFoundError(f"Required file '{filename}' was not found in the current directory.")
+    with open(filename, 'r', encoding='utf-8') as f:
+        return f.read()
+
+
 if __name__ == '__main__':
     excel_file = 'merged_course_schedule.xlsx'
-    template_file = 'htmltemplate.html'
+    html_template_file = 'htmltemplate.html'
     js_file = 'filter.js'
 
     if not os.path.exists(excel_file):
         print(f"Error: Could not find '{excel_file}'. Run join-catalogue.py first.")
-    elif not os.path.exists(template_file):
-        print(f"Error: Could not find '{template_file}'.")
-    elif not os.path.exists(js_file):
-        print(f"Error: Could not find '{js_file}'.")
     else:
-        # 1. Load external helper files
-        with open(template_file, 'r', encoding='utf-8') as f:
-            html_template = f.read()
+        try:
+            template_text = load_file_content(html_template_file)
+            js_text = load_file_content(js_file)
 
-        with open(js_file, 'r', encoding='utf-8') as f:
-            filter_js = f.read()
+            df = pd.read_excel(excel_file)
+            print(f'Loaded {len(df)} course rows from {excel_file}.')
 
-        # 2. Load dataset and generate HTML cards
-        course_and_schedule_df = pd.read_excel(excel_file)
-        print('Loaded', len(course_and_schedule_df), 'course rows.')
+            full_course_html = display_course_info(df)
 
-        full_text = display_course_info(course_and_schedule_df)
+            final_html = template_text.replace(
+                '{{FULL_TEXT_PLACEHOLDER}}', full_course_html
+            ).replace(
+                '{{FILTER_JS_PLACEHOLDER}}', js_text
+            )
 
-        # 3. Assemble document
-        html_document = html_template.replace(
-            '{{FILTER_JS_PLACEHOLDER}}', filter_js
-        )
-        html_document = html_document.replace(
-            '{{FULL_TEXT_PLACEHOLDER}}', full_text
-        )
+            with open('courses.html', 'w', encoding='utf-8') as f:
+                f.write(final_html)
 
-        # 4. Save output
-        with open('courses.html', 'w', encoding='utf-8') as f:
-            f.write(html_document)
+            print('🎉 Saved courses.html successfully using htmltemplate.html and filter.js!')
 
-        print('🎉 Saved courses.html successfully!')
+        except Exception as e:
+            print(f"Error building courses.html: {e}")
