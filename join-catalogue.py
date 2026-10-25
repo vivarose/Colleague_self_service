@@ -32,8 +32,18 @@ courses_df = pd.read_csv('courseExport.csv')
 courses_df['Course Number'] = courses_df['Course Number'].astype(str).str.strip()
 courses_df['Subject Code'] = courses_df['Subject Code'].astype(str).str.strip()
 
-# Rename
+#%% Clean up courses_df
 courses_df = courses_df.rename(columns={'Instructor': 'Usual instructor'})
+
+# 1. Split 'Course Number' values on '/' into lists (e.g., ['145', '245'])
+courses_df['Course Number'] = (
+    courses_df['Course Number'].astype(str).str.split('/')
+)
+# 2. Duplicate rows by exploding the list elements into individual rows
+courses_df = courses_df.explode('Course Number').reset_index(drop=True)
+# 3. Strip any extra whitespace from the new course numbers
+courses_df['Course Number'] = courses_df['Course Number'].str.strip()
+
 
 #%% Split time columns into start and end time
 
@@ -68,8 +78,20 @@ extracted_keys = schedule_df['COURSE_NO'].astype(str).str.extract(
     r'([A-Za-z]+)\s*(\d+[A-Za-z]*)'
 )
 schedule_df['Subject Code'] = extracted_keys[0].str.strip()
-schedule_df['Course Number'] = extracted_keys[1].str.strip()
+schedule_df['Course Number+'] = extracted_keys[1].str.strip()
 
+# 1. Populate 'Writing-intensive' with 'W' if 'W' is present in 'Course Number+' (otherwise empty string '')
+schedule_df['Writing-intensive'] = schedule_df['Course Number+'].astype(
+    str
+).apply(lambda x: 'W' if 'W' in x else '')
+
+# 2. Remove 'W' from 'Course Number+' to create 'Course Number'
+schedule_df['Course Number'] = (
+    schedule_df['Course Number+']
+    .astype(str)
+    .str.replace('W', '', regex=False)
+    .str.strip()
+)
 
 # 4. Perform a left join keeping all rows from schedule_df, using indicator=True
 merged_df = schedule_df.merge(
@@ -172,7 +194,7 @@ final_df = merged_df.merge(
 
 # Re-order the output
 # 1. Specify the desired leading columns
-first_cols = ['Subject Code', 'Course Number', 'Section', 
+first_cols = ['Subject Code', 'Course Number+', 'Section', 
               'TITLE', 'Course Name',  'CREDIT',
               'DAY1', 'TIME1-start', 'TIME1-end',
               'DAY2', 'TIME2-start', 'TIME2-end',
@@ -192,79 +214,3 @@ print(f'Saved merged spreadsheet. Total rows: {len(final_df)}')
 print(os.getcwd())
 
 print(r'merged_course_schedule.xlsx');
-
-
-import re
-import io
-import requests
-import pandas as pd
-from pypdf import PdfReader
-
-# 1. Download the PDF directly from the Hamilton website
-url = "https://www.hamilton.edu/offices/registrar/registration/class-year-seats"
-headers = {"User-Agent": "Mozilla/5.0"}
-response = requests.get(url, headers=headers)
-response.raise_for_status()
-
-# 2. Extract text from the PDF pages
-pdf_file = io.BytesIO(response.content)
-reader = PdfReader(pdf_file)
-
-pdf_text = ""
-for page in reader.pages:
-    pdf_text += page.extract_text() + "\n"
-
-# 3. Parse table rows from the PDF text using regex
-# PDF table columns: Section Name | Short Title | Sec Capacity | Fr Cap | So Cap | Jr Cap | Sr Cap
-# Example row: "AFRST-146W-01  BLACK WOMEN'S LIT RENAISSANCE  18  9  9  0  0"
-pattern = re.compile(
-    r'([A-Z]+-\w+-\d+)\s+(.*?)\s+(\d+|\d+\s+OPEN|OPEN)\s+(\d+|OPEN)\s+(\d+|OPEN)\s+(\d+|OPEN)\s+(\d+|OPEN)'
-)
-
-parsed_data = []
-for match in pattern.finditer(pdf_text):
-    sec_name, title, sec_cap, fr_cap, so_cap, jr_cap, sr_cap = match.groups()
-    
-    # Extract Subject Code, Course Number, and Section Number from Section Name (e.g. AFRST-146W-01)
-    # Group 1: Subject (e.g. AFRST)
-    # Group 2: Course Number (e.g. 146W)
-    # Group 3: Section (e.g. 01)
-    parts = sec_name.split('-')
-    if len(parts) >= 3:
-        subj = parts[0].strip()
-        course_num = parts[1].strip()
-        section = parts[2].strip()
-        
-        parsed_data.append({
-            'Subject Code': subj,
-            'Course Number': course_num,
-            'Section': section,
-            'Sec Capacity': sec_cap,
-            'Fr Cap': fr_cap,
-            'So Cap': so_cap,
-            'Jr Cap': jr_cap,
-            'Sr Cap': sr_cap
-        })
-
-seats_df = pd.DataFrame(parsed_data)
-
-# 4. Ensure Section column exists on merged_df for exact section-level matching
-if 'Section' not in merged_df.columns:
-    # Extract section (the trailing digits) from COURSE_NO (e.g., 'AFRST102 01' -> '01')
-    merged_df['Section'] = merged_df['COURSE_NO'].astype(str).str.extract(r'(\d+)\s*$')[0].str.strip()
-
-# Clean key columns in both DataFrames
-for col in ['Subject Code', 'Course Number', 'Section']:
-    merged_df[col] = merged_df[col].astype(str).str.strip()
-    seats_df[col] = seats_df[col].astype(str).str.strip()
-
-# 5. Left-join seat restriction information onto merged_df
-final_df = merged_df.merge(
-    seats_df[['Subject Code', 'Course Number', 'Section', 'Sec Capacity', 'Fr Cap', 'So Cap', 'Jr Cap', 'Sr Cap']],
-    on=['Subject Code', 'Course Number', 'Section'],
-    how='left'
-)
-
-# Save the updated merged DataFrame
-final_df.to_excel('merged_course_schedule_with_seats.xlsx', index=False)
-print(f"Successfully joined seat information! Total rows: {len(final_df)}")
