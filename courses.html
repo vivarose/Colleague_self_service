@@ -1,363 +1,363 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
- <meta charset="UTF-8">
- <meta name="viewport" content="width=device-width, initial-scale=1.0">
- <title>Hamilton Course Schedule Explorer</title>
- <style>
- body {
- font-family: 'Segoe UI', Arial, sans-serif;
- background-color: #f4f6f8;
- margin: 0;
- padding: 15px 10px;
- color: #24292f;
- }
- .container {
- max-width: 900px;
- margin: 0 auto;
- }
- .filter-panel {
- background: #ffffff;
- border: 1px solid #d0d7de;
- border-radius: 8px;
- padding: 14px 18px 8px 18px;
- margin-bottom: 20px;
- box-shadow: 0 4px 12px rgba(0,0,0,0.06);
- position: sticky;
- top: 10px;
- z-index: 100;
- max-height: 80vh;
- overflow-y: auto;
- }
- .filter-header {
- display: flex;
- justify-content: space-between;
- align-items: center;
- padding-bottom: 6px;
- user-select: none;
- }
- .filter-title-group {
- display: flex;
- align-items: center;
- gap: 10px;
- cursor: pointer;
- }
- .filter-title-group h2 {
- margin: 0;
- font-size: 18px;
- color: #002f6c;
- }
- .counter-badge {
- font-size: 13px;
- font-weight: 600;
- background-color: #002f6c;
- color: #ffffff;
- padding: 4px 10px;
- border-radius: 12px;
- white-space: nowrap;
- }
- .header-toggle-btn {
- background: #f3f4f6;
- border: 1px solid #d0d7de;
- border-radius: 6px;
- padding: 3px 8px;
- font-size: 12px;
- font-weight: 600;
- color: #002f6c;
- cursor: pointer;
- transition: background 0.2s;
- }
- .header-toggle-btn:hover {
- background: #e5e7eb;
- }
- .filter-grid {
- display: grid;
- grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
- gap: 12px;
- padding-top: 10px;
- border-top: 1px solid #e1e4e8;
- }
- .filter-group {
- display: flex;
- flex-direction: column;
- gap: 4px;
- }
- .filter-group label {
- font-size: 11px;
- font-weight: 700;
- color: #57606a;
- text-transform: uppercase;
- }
- .filter-group input, .filter-group select {
- padding: 7px 10px;
- border: 1px solid #d0d7de;
- border-radius: 6px;
- font-size: 13px;
- outline: none;
- }
- .filter-group input:focus, .filter-group select:focus {
- border-color: #002f6c;
- box-shadow: 0 0 0 2px rgba(0,47,108,0.15);
- }
- .checkbox-group {
- grid-column: 1 / -1;
- display: flex;
- flex-wrap: wrap;
- gap: 16px;
- align-items: center;
- padding: 6px 0 2px 0;
- }
- .checkbox-group label {
- font-size: 13px;
- font-weight: 600;
- color: #24292f;
- cursor: pointer;
- display: flex;
- align-items: center;
- gap: 5px;
- }
- .conflict-details {
- margin-top: 12px;
- padding-top: 10px;
- border-top: 1px dashed #d0d7de;
- }
- .conflict-summary {
- font-size: 13px;
- font-weight: 700;
- color: #002f6c;
- cursor: pointer;
- user-select: none;
- padding: 4px 0;
- outline: none;
- }
- .conflict-summary:hover {
- color: #001f48;
- }
- .day-checkboxes {
- display: flex;
- gap: 10px;
- align-items: center;
- font-size: 12px;
- font-weight: 600;
- }
- .day-checkboxes label {
- cursor: pointer;
- display: flex;
- align-items: center;
- gap: 2px;
- text-transform: none;
- }
- .add-block-row {
- display: flex;
- flex-wrap: wrap;
- gap: 10px;
- align-items: flex-end;
- margin-top: 8px;
- margin-bottom: 8px;
- }
- .btn-add {
- padding: 7px 14px;
- background-color: #002f6c;
- color: white;
- border: none;
- border-radius: 6px;
- font-size: 13px;
- font-weight: 600;
- cursor: pointer;
- transition: background 0.2s;
- }
- .btn-add:hover {
- background-color: #001f48;
- }
- .busy-list {
- display: flex;
- flex-wrap: wrap;
- gap: 8px;
- margin-top: 6px;
- }
- .busy-chip {
- background: #ffebe9;
- border: 1px solid #ffc1c0;
- color: #cf222e;
- padding: 4px 10px;
- border-radius: 16px;
- font-size: 12px;
- font-weight: 600;
- display: flex;
- align-items: center;
- gap: 6px;
- }
- .busy-chip .remove-btn {
- cursor: pointer;
- font-weight: bold;
- color: #cf222e;
- border: none;
- background: none;
- padding: 0;
- font-size: 14px;
- line-height: 1;
- }
- .reset-btn {
- grid-column: 1 / -1;
- width: 100%;
- padding: 8px 14px;
- background-color: #f3f4f6;
- border: 1px solid #d0d7de;
- border-radius: 6px;
- cursor: pointer;
- font-size: 13px;
- font-weight: 600;
- color: #24292f;
- transition: background 0.2s;
- margin-top: 10px;
- }
- .reset-btn:hover {
- background-color: #e5e7eb;
- }
- .panel-toggle-bar {
- text-align: center;
- margin-top: 10px;
- padding: 6px 0 2px 0;
- border-top: 1px solid #e1e4e8;
- cursor: pointer;
- color: #002f6c;
- font-size: 13px;
- font-weight: bold;
- user-select: none;
- transition: color 0.2s, background-color 0.2s;
- display: flex;
- align-items: center;
- justify-content: center;
- gap: 6px;
- }
- .panel-toggle-bar:hover {
- color: #001f48;
- background-color: #f6f8fa;
- border-radius: 0 0 6px 6px;
- }
- .hidden {
- display: none !important;
- }
- @media (max-width: 600px) {
- .filter-panel {
- padding: 10px 12px;
- top: 5px;
- max-height: 75vh;
- }
- .filter-grid {
- grid-template-columns: 1fr 1fr;
- gap: 8px;
- }
- .checkbox-group {
- flex-direction: column;
- align-items: flex-start;
- gap: 8px;
- }
- .add-block-row {
- flex-direction: column;
- align-items: stretch;
- }
- .btn-add {
- width: 100%;
- }
- }
- </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hamilton Course Schedule Explorer</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background-color: #f4f6f8;
+      margin: 0;
+      padding: 15px 10px;
+      color: #24292f;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    .filter-panel {
+      background: #ffffff;
+      border: 1px solid #d0d7de;
+      border-radius: 8px;
+      padding: 14px 18px 8px 18px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+      position: sticky;
+      top: 10px;
+      z-index: 100;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+    .filter-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 6px;
+      user-select: none;
+    }
+    .filter-title-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+    }
+    .filter-title-group h2 {
+      margin: 0;
+      font-size: 18px;
+      color: #002f6c;
+    }
+    .counter-badge {
+      font-size: 13px;
+      font-weight: 600;
+      background-color: #002f6c;
+      color: #ffffff;
+      padding: 4px 10px;
+      border-radius: 12px;
+      white-space: nowrap;
+    }
+    .header-toggle-btn {
+      background: #f3f4f6;
+      border: 1px solid #d0d7de;
+      border-radius: 6px;
+      padding: 3px 8px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #002f6c;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .header-toggle-btn:hover {
+      background: #e5e7eb;
+    }
+    .filter-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+      padding-top: 10px;
+      border-top: 1px solid #e1e4e8;
+    }
+    .filter-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .filter-group label {
+      font-size: 11px;
+      font-weight: 700;
+      color: #57606a;
+      text-transform: uppercase;
+    }
+    .filter-group input, .filter-group select {
+      padding: 7px 10px;
+      border: 1px solid #d0d7de;
+      border-radius: 6px;
+      font-size: 13px;
+      outline: none;
+    }
+    .filter-group input:focus, .filter-group select:focus {
+      border-color: #002f6c;
+      box-shadow: 0 0 0 2px rgba(0,47,108,0.15);
+    }
+    .checkbox-group {
+      grid-column: 1 / -1;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      align-items: center;
+      padding: 6px 0 2px 0;
+    }
+    .checkbox-group label {
+      font-size: 13px;
+      font-weight: 600;
+      color: #24292f;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .conflict-details {
+      margin-top: 12px;
+      padding-top: 10px;
+      border-top: 1px dashed #d0d7de;
+    }
+    .conflict-summary {
+      font-size: 13px;
+      font-weight: 700;
+      color: #002f6c;
+      cursor: pointer;
+      user-select: none;
+      padding: 4px 0;
+      outline: none;
+    }
+    .conflict-summary:hover {
+      color: #001f48;
+    }
+    .day-checkboxes {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .day-checkboxes label {
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      text-transform: none;
+    }
+    .add-block-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: flex-end;
+      margin-top: 8px;
+      margin-bottom: 8px;
+    }
+    .btn-add {
+      padding: 7px 14px;
+      background-color: #002f6c;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-add:hover {
+      background-color: #001f48;
+    }
+    .busy-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 6px;
+    }
+    .busy-chip {
+      background: #ffebe9;
+      border: 1px solid #ffc1c0;
+      color: #cf222e;
+      padding: 4px 10px;
+      border-radius: 16px;
+      font-size: 12px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .busy-chip .remove-btn {
+      cursor: pointer;
+      font-weight: bold;
+      color: #cf222e;
+      border: none;
+      background: none;
+      padding: 0;
+      font-size: 14px;
+      line-height: 1;
+    }
+    .reset-btn {
+      grid-column: 1 / -1;
+      width: 100%;
+      padding: 8px 14px;
+      background-color: #f3f4f6;
+      border: 1px solid #d0d7de;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      color: #24292f;
+      transition: background 0.2s;
+      margin-top: 10px;
+    }
+    .reset-btn:hover {
+      background-color: #e5e7eb;
+    }
+    .panel-toggle-bar {
+      text-align: center;
+      margin-top: 10px;
+      padding: 6px 0 2px 0;
+      border-top: 1px solid #e1e4e8;
+      cursor: pointer;
+      color: #002f6c;
+      font-size: 13px;
+      font-weight: bold;
+      user-select: none;
+      transition: color 0.2s, background-color 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .panel-toggle-bar:hover {
+      color: #001f48;
+      background-color: #f6f8fa;
+      border-radius: 0 0 6px 6px;
+    }
+    .hidden {
+      display: none !important;
+    }
+    @media (max-width: 600px) {
+      .filter-panel {
+        padding: 10px 12px;
+        top: 5px;
+        max-height: 75vh;
+      }
+      .filter-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+      .checkbox-group {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+      }
+      .add-block-row {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .btn-add {
+        width: 100%;
+      }
+    }
+  </style>
 </head>
 <body>
- <div class="container">
- <div class="filter-panel" id="filterPanel">
- <div class="filter-header">
- <div class="filter-title-group" onclick="toggleFilterPanel()" title="Click to collapse/expand filters">
- <h2>🔍 Course Filters</h2>
- <button class="header-toggle-btn" id="headerToggleBtn">▲ Hide</button>
- </div>
- <span class="counter-badge" id="courseCounter">Loading...</span>
- </div>
- 
-<div id="filterBody">
- <div class="filter-grid">
- <div class="filter-group">
- <label>Search Keyword</label>
- <input type="text" id="searchInput" placeholder="Course name, instructor, code...">
- </div>
- 
-<div class="filter-group">
- <label for="classYearFilter">Class Year</label>
- <select id="classYearFilter">
- <option value="all">All Class Years</option>
- <option value="1st-years">1st-Year Student</option>
- <option value="2nd-years">2nd-Year Student</option>
- <option value="3rd-years">3rd-Year Student</option>
- <option value="4th-years">4th-Year Student</option>
- </select>
- </div>
+  <div class="container">
+    <div class="filter-panel" id="filterPanel">
+      <div class="filter-header">
+        <div class="filter-title-group" onclick="toggleFilterPanel()" title="Click to collapse/expand filters">
+          <h2>🔍 Course Filters</h2>
+          <button class="header-toggle-btn" id="headerToggleBtn">▲ Hide</button>
+        </div>
+        <span class="counter-badge" id="courseCounter">Loading...</span>
+      </div>
+      
+      <div id="filterBody">
+        <div class="filter-grid">
+          <div class="filter-group">
+            <label>Search Keyword</label>
+            <input type="text" id="searchInput" placeholder="Course name, instructor, code...">
+          </div>
+          
+          <div class="filter-group">
+            <label for="classYearFilter">Class Year</label>
+            <select id="classYearFilter">
+              <option value="all">All Class Years</option>
+              <option value="1st-years">1st-Year Student</option>
+              <option value="2nd-years">2nd-Year Student</option>
+              <option value="3rd-years">3rd-Year Student</option>
+              <option value="4th-years">4th-Year Student</option>
+            </select>
+          </div>
 
- <div class="filter-group">
- <label>Hide Starts Before</label>
- <select id="timeBeforeSelect">
- <option value="">-- No Restriction --</option>
- <option value="510">9:00 AM</option>
- <option value="600">10:00 AM</option>
- <option value="660">11:00 AM</option>
- <option value="720">12:00 PM (Noon)</option>
- <option value="780">1:00 PM</option>
- </select>
- </div>
+          <div class="filter-group">
+            <label>Hide Starts Before</label>
+            <select id="timeBeforeSelect">
+              <option value="">-- No Restriction --</option>
+              <option value="510">9:00 AM</option>
+              <option value="600">10:00 AM</option>
+              <option value="660">11:00 AM</option>
+              <option value="720">12:00 PM (Noon)</option>
+              <option value="780">1:00 PM</option>
+            </select>
+          </div>
 
- <div class="filter-group">
- <label>Hide Ends After</label>
- <select id="timeAfterSelect">
- <option value="">-- No Restriction --</option>
- <option value="840">2:00 PM</option>
- <option value="900">3:00 PM</option>
- <option value="960">4:00 PM</option>
- <option value="1020">5:00 PM</option>
- </select>
- </div>
+          <div class="filter-group">
+            <label>Hide Ends After</label>
+            <select id="timeAfterSelect">
+              <option value="">-- No Restriction --</option>
+              <option value="840">2:00 PM</option>
+              <option value="900">3:00 PM</option>
+              <option value="960">4:00 PM</option>
+              <option value="1020">5:00 PM</option>
+            </select>
+          </div>
 
- <div class="checkbox-group">
- <label><input type="checkbox" id="wiOnly"> Writing Intensive Only</label>
- <label><input type="checkbox" id="noPrereqOnly"> No Prerequisites Only</label>
- </div>
- </div>
+          <div class="checkbox-group">
+            <label><input type="checkbox" id="wiOnly"> Writing Intensive Only</label>
+            <label><input type="checkbox" id="noPrereqOnly"> No Prerequisites Only</label>
+          </div>
+        </div>
 
- <details class="conflict-details">
- <summary class="conflict-summary">🚫 Exclude Busy Time Blocks (Schedule Conflicts)</summary>
- <div class="add-block-row">
- <div class="filter-group">
- <label>Days</label>
- <div class="day-checkboxes">
- <label><input type="checkbox" class="busy-day" value="M"> M</label>
- <label><input type="checkbox" class="busy-day" value="T"> T</label>
- <label><input type="checkbox" class="busy-day" value="W"> W</label>
- <label><input type="checkbox" class="busy-day" value="R"> R</label>
- <label><input type="checkbox" class="busy-day" value="F"> F</label>
- </div>
- </div>
- <div class="filter-group">
- <label>Start Time</label>
- <input type="time" id="busyStartTime" value="10:00">
- </div>
- <div class="filter-group">
- <label>End Time</label>
- <input type="time" id="busyEndTime" value="10:50">
- </div>
- <button class="btn-add" onclick="addBusyBlock()">+ Exclude Time Block</button>
- </div>
+        <details class="conflict-details">
+          <summary class="conflict-summary">🚫 Exclude Busy Time Blocks (Schedule Conflicts)</summary>
+          <div class="add-block-row">
+            <div class="filter-group">
+              <label>Days</label>
+              <div class="day-checkboxes">
+                <label><input type="checkbox" class="busy-day" value="M"> M</label>
+                <label><input type="checkbox" class="busy-day" value="T"> T</label>
+                <label><input type="checkbox" class="busy-day" value="W"> W</label>
+                <label><input type="checkbox" class="busy-day" value="R"> R</label>
+                <label><input type="checkbox" class="busy-day" value="F"> F</label>
+              </div>
+            </div>
+            <div class="filter-group">
+              <label>Start Time</label>
+              <input type="time" id="busyStartTime" value="10:00">
+            </div>
+            <div class="filter-group">
+              <label>End Time</label>
+              <input type="time" id="busyEndTime" value="10:50">
+            </div>
+            <button class="btn-add" onclick="addBusyBlock()">+ Exclude Time Block</button>
+          </div>
 
- <div class="busy-list" id="busyList"></div>
- </details>
+          <div class="busy-list" id="busyList"></div>
+        </details>
 
- <button class="reset-btn" onclick="resetFilters()">Reset All Filters</button>
- </div>
+        <button class="reset-btn" onclick="resetFilters()">Reset All Filters</button>
+      </div>
 
- <div class="panel-toggle-bar" id="toggleBar" onclick="toggleFilterPanel()" title="Click to collapse/expand filters">
- <span id="toggleText">Hide Filters</span> <span id="panelCaret">▲</span>
- </div>
- </div>
+      <div class="panel-toggle-bar" id="toggleBar" onclick="toggleFilterPanel()" title="Click to collapse/expand filters">
+        <span id="toggleText">Hide Filters</span> <span id="panelCaret">▲</span>
+      </div>
+    </div>
 
- <div id="courseContainer">
- <div class="course-card" data-subject="AFRST" data-days="MW" data-start-min="510" data-end-min="585" data-wi="true" data-has-prereq="false" data-slots="[{&quot;days&quot;: &quot;MW&quot;, &quot;start&quot;: 510, &quot;end&quot;: 585}]" data-1st-years="ok" data-2nd-years="ok" data-3rd-years="no" data-4th-years="no" style="font-family: 'Segoe UI', Arial, sans-serif; border: 1px solid #d0d7de; border-radius: 8px; padding: 18px 20px; margin-bottom: 20px; background-color: #ffffff; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+    <div id="courseContainer">
+      <div class="course-card" data-subject="AFRST" data-days="MW" data-start-min="510" data-end-min="585" data-wi="true" data-has-prereq="false" data-slots="[{&quot;days&quot;: &quot;MW&quot;, &quot;start&quot;: 510, &quot;end&quot;: 585}]" data-1st-years="ok" data-2nd-years="ok" data-3rd-years="no" data-4th-years="no" style="font-family: 'Segoe UI', Arial, sans-serif; border: 1px solid #d0d7de; border-radius: 8px; padding: 18px 20px; margin-bottom: 20px; background-color: #ffffff; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
  <div style='border-bottom: 2px solid #002f6c; padding-bottom: 8px; margin-bottom: 14px;'>
  <h3 style='margin: 0; color: #002f6c; font-size: 19px; font-weight: 700;'>AFRST 146W-01: Black Women's Literary Renaissance</h3>
  <div style='margin-top: 4px; font-size: 13px; color: #57606a; font-weight: 600;'>Africana Studies &nbsp;•&nbsp; 1 Credit &nbsp;•&nbsp; Writing Intensive</div>
@@ -10353,11 +10353,11 @@
  <div style='font-size: 14px; color: #24292f; line-height: 1.6; background-color: #f6f8fa; border-left: 4px solid #002f6c; padding: 10px 14px; border-radius: 0 6px 6px 0;'>Interdisciplinary examination of the tradition of black feminist thought as it spans African and African-American heritages. Exploration of how black women are not simply victims of oppression but visionary agents of change. Areas examined include history, literature,music,art,education, sociology and film. There is intersectional analysis of the social, structural, and institutional hierarchies within the identities of women of African descent (gender/transgender, race, white supremacy, sexual/affectional orientation, class, color, and ability).</div>
  </div>
 </div>
- </div>
- </div>
+    </div>
+  </div>
 
- <script>
-// Hamilton Course Explorer Filtering Logic
+  <script>
+    // Hamilton Course Explorer Filtering Logic
 
 let busyBlocks = [];
 
@@ -10461,6 +10461,7 @@ function filterCourses() {
   cards.forEach(card => {
     let show = true;
 
+    // 1. Search Query Filter
     if (query !== '') {
       const cardText = card.innerText.toLowerCase();
       if (!cardText.includes(query)) {
@@ -10468,6 +10469,7 @@ function filterCourses() {
       }
     }
 
+    // 2. Class Year Eligibility
     if (show && selectedYear !== 'all') {
       const yearStatus = card.getAttribute(`data-${selectedYear}`);
       if (yearStatus === 'no') {
@@ -10475,6 +10477,7 @@ function filterCourses() {
       }
     }
 
+    // 3. Hide Starts Before Boundary
     if (show && !isNaN(hideBefore)) {
       const startMin = parseInt(card.getAttribute('data-start-min'), 10);
       if (!isNaN(startMin) && startMin < hideBefore) {
@@ -10482,6 +10485,7 @@ function filterCourses() {
       }
     }
 
+    // 4. Hide Ends After Boundary
     if (show && !isNaN(hideAfter)) {
       const endMin = parseInt(card.getAttribute('data-end-min'), 10);
       if (!isNaN(endMin) && endMin > hideAfter) {
@@ -10489,18 +10493,21 @@ function filterCourses() {
       }
     }
 
+    // 5. Writing Intensive Check
     if (show && wiOnly) {
       if (card.getAttribute('data-wi') !== 'true') {
         show = false;
       }
     }
 
+    // 6. Prerequisites Check
     if (show && noPrereqOnly) {
       if (card.getAttribute('data-has-prereq') === 'true') {
         show = false;
       }
     }
 
+    // 7. Busy Time Block / Schedule Conflict Exclusion
     if (show && busyBlocks.length > 0) {
       const slotsRaw = card.getAttribute('data-slots');
       if (slotsRaw) {
@@ -10526,6 +10533,7 @@ function filterCourses() {
       }
     }
 
+    // Toggle Visibility
     if (show) {
       card.classList.remove('hidden');
       visibleCount++;
@@ -10555,6 +10563,7 @@ function resetFilters() {
   filterCourses();
 }
 
+// Attach Event Listeners on DOM Load
 window.addEventListener('DOMContentLoaded', () => {
   document.getElementById('searchInput').addEventListener('input', filterCourses);
   document.getElementById('classYearFilter').addEventListener('change', filterCourses);
@@ -10565,6 +10574,6 @@ window.addEventListener('DOMContentLoaded', () => {
 
   filterCourses();
 });
- </script>
+  </script>
 </body>
 </html>
