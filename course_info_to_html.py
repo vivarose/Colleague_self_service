@@ -266,6 +266,13 @@ def display_course_info(data, mode='html'):
             raw_title = row.get('Course Name') or row.get('TITLE')
             title = clean_title(raw_title)
             full_title = f'{code_sec}: {title}' if title else code_sec
+            
+            cat_url = row.get('Catalogue URL')
+            if is_valid(cat_url):
+                url_str = str(cat_url).strip()
+                title_html = f'<a href="{html.escape(url_str)}" target="_blank" style="color: inherit; text-decoration: underline;">{full_title}</a>'
+            else:
+                title_html = full_title
 
             sub_items = []
             subj_name = row.get('Subject Name')
@@ -351,7 +358,7 @@ def display_course_info(data, mode='html'):
                 ),
                 " <div style='border-bottom: 2px solid #002f6c; padding-bottom: 8px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: flex-start;'>",
                 "   <div>",
-                f"     <h3 style='margin: 0; color: #002f6c; font-size: 19px; font-weight: 700;'>{full_title}</h3>",
+                f"     <h3 style='margin: 0; color: #002f6c; font-size: 19px; font-weight: 700;'>{title_html}</h3>",
             ]
 
             if subtitle_str:
