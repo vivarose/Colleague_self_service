@@ -291,33 +291,12 @@
               <option value="4th-years">4th-Year Student</option>
             </select>
           </div>
-		  <!-- Department Code Filter Dropdown -->
-		  <div class="filter-group">
-		    <label for="deptFilter">Department</label>
-		    <select id="deptFilter">
-		    	{{DEPT_OPTIONS_PLACEHOLDER}}
-		    </select>
-		  </div>
-          <div class="filter-group">
-            <label>Hide Starts Before</label>
-            <select id="timeBeforeSelect">
-              <option value="">-- No Restriction --</option>
-              <option value="510">9:00 AM</option>
-              <option value="600">10:00 AM</option>
-              <option value="660">11:00 AM</option>
-              <option value="720">12:00 PM (Noon)</option>
-              <option value="780">1:00 PM</option>
-            </select>
-          </div>
 
+          <!-- Department Code Filter Dropdown -->
           <div class="filter-group">
-            <label>Hide Ends After</label>
-            <select id="timeAfterSelect">
-              <option value="">-- No Restriction --</option>
-              <option value="840">2:00 PM</option>
-              <option value="900">3:00 PM</option>
-              <option value="960">4:00 PM</option>
-              <option value="1020">5:00 PM</option>
+            <label for="deptFilter">Department</label>
+            <select id="deptFilter">
+              {{DEPT_OPTIONS_PLACEHOLDER}}
             </select>
           </div>
 
@@ -327,8 +306,37 @@
           </div>
         </div>
 
+        <!-- FOLDABLE TIME & SCHEDULE CONFLICTS SECTION -->
         <details class="conflict-details">
-          <summary class="conflict-summary">🚫 Exclude Busy Time Blocks (Schedule Conflicts)</summary>
+          <summary class="conflict-summary">⏰ Time Restrictions & Busy Blocks</summary>
+          
+          <!-- Start/End Time Restrictions -->
+          <div class="add-block-row" style="margin-top: 10px; margin-bottom: 12px;">
+            <div class="filter-group">
+              <label>Hide Starts Before</label>
+              <select id="timeBeforeSelect">
+                <option value="">-- No Restriction --</option>
+                <option value="510">9:00 AM</option>
+                <option value="600">10:00 AM</option>
+                <option value="660">11:00 AM</option>
+                <option value="720">12:00 PM (Noon)</option>
+                <option value="780">1:00 PM</option>
+              </select>
+            </div>
+
+            <div class="filter-group">
+              <label>Hide Ends After</label>
+              <select id="timeAfterSelect">
+                <option value="">-- No Restriction --</option>
+                <option value="840">2:00 PM</option>
+                <option value="900">3:00 PM</option>
+                <option value="960">4:00 PM</option>
+                <option value="1020">5:00 PM</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Exclude Specific Busy Blocks -->
           <div class="add-block-row">
             <div class="filter-group">
               <label>Days</label>
