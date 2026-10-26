@@ -199,6 +199,36 @@ def clean_comments_notes(comments, notes):
 
     return ' '.join(sentences)
 
+def get_base_num(course_num):
+    """Strips trailing 'L' or section modifiers to get the primary course number (e.g., '270L' -> '270')."""
+    if not is_valid(course_num):
+        return ''
+    # Remove trailing L, W, or section suffixes
+    clean = re.sub(r'[LwLW]$', '', str(course_num).strip())
+    return clean
+
+def group_courses_and_labs(rows):
+    """Groups laboratory courses under their parent main courses."""
+    parents = []
+    labs_by_key = {}  # Key: (Subject Code, Base Number) -> List of lab rows
+
+    # First Pass: Separate Main Courses and Lab Courses
+    for row in rows:
+        subj = str(row.get('Subject Code', '')).strip()
+        num_plus = str(row.get('Course Number+', row.get('Course Number', ''))).strip()
+        
+        is_lab = num_plus.endswith('L') # only look for labs affiliated with coursees
+        base_num = get_base_num(num_plus)
+        group_key = (subj, base_num)
+
+        if is_lab:
+            if group_key not in labs_by_key:
+                labs_by_key[group_key] = []
+            labs_by_key[group_key].append(row)
+        else:
+            parents.append((group_key, row))
+
+    return parents, labs_by_key
 
 def display_course_info(data, mode='html'):
     """Displays formatted course details for DataFrame or list of rows."""
@@ -216,9 +246,10 @@ def display_course_info(data, mode='html'):
         )
 
     if mode.lower() == 'html':
+        parents, labs_by_key = group_courses_and_labs(rows) # group labs with parent courses
         html_cards = []
 
-        for row in rows:
+        for group_key, row in parents:
             all_starts, all_ends, all_days = [], [], []
             meeting_slots = []
 
@@ -263,8 +294,7 @@ def display_course_info(data, mode='html'):
             if is_valid(sec) and sec != 'nan':
                 code_sec += f"-{sec.zfill(2) if sec.isdigit() else sec}"
 
-            raw_title = row.get('Course Name') or row.get('TITLE')
-            title = clean_title(raw_title)
+            title = row.get('Course Name') or clean_title(row.get('TITLE'))
             full_title = f'{code_sec}: {title}' if title else code_sec
             
             cat_url = row.get('Catalogue URL')
@@ -342,7 +372,8 @@ def display_course_info(data, mode='html'):
             cross_display = str(cross_list).strip().strip(',') if is_valid(cross_list) else None
 
             comments_display = clean_comments_notes(row.get('COMMENTS'), row.get('Notes'))
-
+            
+            ## BUILD THE CARD!
             card = [
                 (
                     f'<div class="course-card" data-subject="{subj}"'
@@ -398,8 +429,42 @@ def display_course_info(data, mode='html'):
                     "   </div>",
                     " </div>",
                 ])
+                
+            # Retrieve matching lab sections
+            matching_labs = labs_by_key.get(group_key, [])
+            if matching_labs:
+                card.append('  <div class="nested-labs-container" style="margin-top: 15px; padding: 12px; background-color: #f0f4f8; border-radius: 6px; border: 1px solid #d0d7de;">')
+                card.append(f'    <strong style="color: #002f6c; font-size: 13px;">🔬 Required Co-requisite Lab Sections ({len(matching_labs)} available):</strong>')
+                
+                for lab in matching_labs:
+                    lab_sec = str(lab.get('Section', '')).strip()
+                    lab_code = f"{lab.get('Subject Code', '')} {lab.get('Course Number+', '')}-{lab_sec}"
+                    
+                    # Format lab schedule
+                    lab_schedules = []
+                    for i in range(1, 5):
+                        d = format_days(lab.get(f'DAY{i}'))
+                        st = clean_time(lab.get(f'TIME{i}-start'))
+                        en = clean_time(lab.get(f'TIME{i}-end'))
+                        rm = clean_room(lab.get(f'ROOM{i}'))
+                        if st and en:
+                            lab_schedules.append(f"{d} {st}–{en}" + (f" @ {rm}" if rm else ""))
+                    
+                    lab_sched_str = " | ".join(lab_schedules) if lab_schedules else "TBA"
+                    lab_inst = lab.get('INSTRUCTOR1', 'TBA')
+                    lab_cap = clean_num(lab.get('MAXCAP') or lab.get('Sec Capacity', ''))
+    
+                    card.append(f'''
+                    <div class="lab-card" style="margin-top: 8px; padding: 10px; background: #ffffff; border-left: 3px solid #002f6c; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                        <div style="font-weight: bold; font-size: 13px; color: #24292f;">{lab_code}</div>
+                        <div style="font-size: 12px; color: #57606a; margin-top: 2px;">
+                            🕒 <b>Schedule:</b> {lab_sched_str} | 👤 <b>Instructor:</b> {lab_inst} | 👥 <b>Seats:</b> {lab_cap}
+                        </div>
+                    </div>
+                    ''')
+                card.append('  </div>') # Close nested-labs-container
+            card.append('  </div>') # Close card-body
 
-            card.append('</div>')
             html_cards.append('\n'.join(card))
 
         return '\n'.join(html_cards)
