@@ -3,6 +3,8 @@ Code to help me use Colleague_self_service
 
 # Hamilton Course Catalogue Explorer
 
+[vivarose.github.io/Colleague_self_service/courses.html](https://vivarose.github.io/Colleague_self_service/courses.html)
+
 An interactive web tool and Python pipeline for compiling, formatting, and exploring Hamilton College course schedules with course descriptions, prerequisites, and registration restrictions.
 
 ---
