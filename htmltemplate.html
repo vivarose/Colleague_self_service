@@ -64,6 +64,28 @@
    font-size: 18px;
    color: #002f6c;
  }
+ .shuffle-btn {
+  background: #f3f4f6;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #002f6c;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.shuffle-btn:hover {
+  background: #e5e7eb;
+}
+
+.shuffle-btn:active {
+  transform: scale(0.96);
+}
  .counter-badge {
    font-size: 13px;
    font-weight: 600;
@@ -291,13 +313,16 @@
    </div>
 
    <div class="filter-panel" id="filterPanel">
-     <div class="filter-header">
-       <div class="filter-title-group" onclick="toggleFilterPanel()" title="Click to collapse/expand filters">
-         <h2>🔍 Course Filters</h2>
-         <button class="header-toggle-btn" id="headerToggleBtn">▲ Hide</button>
-       </div>
-       <span class="counter-badge" id="courseCounter">Loading...</span>
-     </div>
+		<div class="filter-header">
+		  <div class="filter-title-group" onclick="toggleFilterPanel()" title="Click to collapse/expand filters">
+			<h2>🔍 Course Filters</h2>
+			<button class="header-toggle-btn" id="headerToggleBtn">▲ Hide</button>
+		  </div>
+		  <div style="display: flex; align-items: center; gap: 8px;">
+			<button class="shuffle-btn" onclick="shuffleCourses()" title="Randomize course display order">🔀 Shuffle</button>
+			<span class="counter-badge" id="courseCounter">Loading...</span>
+		  </div>
+		</div>
      
      <div id="filterBody">
        <div class="filter-grid">

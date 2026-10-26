@@ -94,7 +94,22 @@ function hideCourseCard(btn) {
   filterCourses();
 }
 
+function shuffleCourses() {
+  const container = document.getElementById('courseContainer');
+  if (!container) return;
 
+  // Get all course cards currently in the DOM
+  const cards = Array.from(container.children);
+
+  // Fisher-Yates shuffle algorithm
+  for (let i = cards.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [cards[i], cards[j]] = [cards[j], cards[i]];
+  }
+
+  // Re-append nodes in the new random order
+  cards.forEach(card => container.appendChild(card));
+}
 
 function filterCourses() {
   const query = document.getElementById('searchInput').value.toLowerCase().trim();
