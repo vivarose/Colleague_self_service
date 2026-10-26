@@ -294,7 +294,8 @@ def display_course_info(data, mode='html'):
             if is_valid(sec) and sec != 'nan':
                 code_sec += f"-{sec.zfill(2) if sec.isdigit() else sec}"
 
-            title = row.get('Course Name') or clean_title(row.get('TITLE'))
+            raw_title = row.get('Course Name') or row.get('TITLE')
+            title = clean_title(raw_title)
             full_title = f'{code_sec}: {title}' if title else code_sec
             
             cat_url = row.get('Catalogue URL')
