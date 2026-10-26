@@ -315,7 +315,7 @@
    <div class="filter-panel" id="filterPanel">
 		<div class="filter-header">
 		  <div class="filter-title-group" onclick="toggleFilterPanel()" title="Click to collapse/expand filters">
-			<h2>🔍 Course Filters</h2>
+			<h2>🔍 Spr '27 Course Filters</h2>
 			<button class="header-toggle-btn" id="headerToggleBtn">▲ Hide</button>
 		  </div>
 		  <div style="display: flex; align-items: center; gap: 8px;">
@@ -13449,10 +13449,43 @@
    </div>
  </div>
 
+ <!-- Footer & Visit Counter Container -->
+ <footer style="text-align: center; margin-top: 40px; padding: 20px 0 30px 0; border-top: 1px solid #d0d7de; font-size: 12px; color: #57606a;">
+   <div style="margin-bottom: 8px;">
+     
+     <span class="counter-badge" id="visitCounter">Visits: --</span>
+     
+   </div>
+   <div>Hamilton Course Schedule Explorer</div>
+ </footer>
+
  <script>
    // Hamilton Course Explorer Filtering Logic
 
 let busyBlocks = [];
+
+async function updateVisitCount() {
+  const counterElement = document.getElementById('visitCounter');
+  if (!counterElement) return;
+
+  try {
+    // Replace 'hamilton-course-explorer' and 'page-views' with unique strings for your project
+    const namespace = 'hamilton-course-explorer';
+    const key = 'page-views';
+    
+    const response = await fetch(`https://api.counterapi.dev/v1/${namespace}/${key}/up`);
+    const data = await response.json();
+    
+    if (data && data.count !== undefined) {
+      counterElement.textContent = `Visits: ${data.count.toLocaleString()}`;
+    } else {
+      counterElement.textContent = `Visits: 1`;
+    }
+  } catch (err) {
+    console.error('Visit counter error:', err);
+    counterElement.style.display = 'none'; // Gracefully hide if offline or blocked
+  }
+}
 
 function toggleFilterPanel() {
   const filterBody = document.getElementById('filterBody');
@@ -13704,6 +13737,7 @@ function resetFilters() {
 
 // Attach Event Listeners on DOM Load
 window.addEventListener('DOMContentLoaded', () => {
+  updateVisitCount();
   document.getElementById('searchInput')?.addEventListener('input', filterCourses);
   document.getElementById('classYearFilter')?.addEventListener('change', filterCourses);
   document.getElementById('deptFilter')?.addEventListener('change', filterCourses); // Moved here!

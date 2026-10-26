@@ -2,6 +2,29 @@
 
 let busyBlocks = [];
 
+async function updateVisitCount() {
+  const counterElement = document.getElementById('visitCounter');
+  if (!counterElement) return;
+
+  try {
+    // Replace 'hamilton-course-explorer' and 'page-views' with unique strings for your project
+    const namespace = 'hamilton-course-explorer';
+    const key = 'page-views';
+    
+    const response = await fetch(`https://api.counterapi.dev/v1/${namespace}/${key}/up`);
+    const data = await response.json();
+    
+    if (data && data.count !== undefined) {
+      counterElement.textContent = `Visits: ${data.count.toLocaleString()}`;
+    } else {
+      counterElement.textContent = `Visits: 1`;
+    }
+  } catch (err) {
+    console.error('Visit counter error:', err);
+    counterElement.style.display = 'none'; // Gracefully hide if offline or blocked
+  }
+}
+
 function toggleFilterPanel() {
   const filterBody = document.getElementById('filterBody');
   const caret = document.getElementById('panelCaret');
@@ -252,6 +275,7 @@ function resetFilters() {
 
 // Attach Event Listeners on DOM Load
 window.addEventListener('DOMContentLoaded', () => {
+  updateVisitCount();
   document.getElementById('searchInput')?.addEventListener('input', filterCourses);
   document.getElementById('classYearFilter')?.addEventListener('change', filterCourses);
   document.getElementById('deptFilter')?.addEventListener('change', filterCourses); // Moved here!
