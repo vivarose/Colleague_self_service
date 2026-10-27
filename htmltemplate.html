@@ -288,6 +288,13 @@
    display: flex;
    align-items: center;
  }
+ .header-actions [hidden] {
+   display: none !important;
+ }
+ #corrigendumStatus {
+   margin: 8px 0;
+   font-size: 13px;
+ }
  @page {
    margin: 16mm;
  }
@@ -316,6 +323,10 @@
      font-size: 9pt;
      border-bottom: 1pt solid black;
      padding-bottom: 10pt;
+   }
+   #courseBooklet .booklet-provenance {
+     font-size: 8pt;
+     overflow-wrap: anywhere;
    }
    #courseBooklet h2 {
      font-size: 15pt;
@@ -347,6 +358,23 @@
    #courseBooklet a {
      color: black;
      text-decoration: none;
+   }
+   #courseBooklet .corrigendum-entry {
+     margin: 10pt 0;
+     break-inside: avoid;
+   }
+   #courseBooklet table {
+     width: 100%;
+     border-collapse: collapse;
+     table-layout: fixed;
+     font-size: 8pt;
+   }
+   #courseBooklet th, #courseBooklet td {
+     border: 0.5pt solid #777;
+     padding: 3pt;
+     text-align: left;
+     vertical-align: top;
+     overflow-wrap: anywhere;
    }
    #courseBooklet .lab-card {
      margin: 5pt 0 0 10pt;
@@ -391,15 +419,20 @@
    <div class="filter-panel" id="filterPanel">
 		<div class="filter-header">
 		  <div class="filter-title-group" onclick="toggleFilterPanel()" title="Click to collapse/expand filters">
-			<h2>🔍 Spr '27 Course Filters</h2>
+      <h2>🔍 {{CATALOG_TERM_LABEL_PLACEHOLDER}} Course Filters</h2>
 			<button class="header-toggle-btn" id="headerToggleBtn">▲ Hide</button>
 		  </div>
       <div class="header-actions">
 			<button class="shuffle-btn" onclick="shuffleCourses()" title="Randomize course display order">🔀 Shuffle</button>
       <button type="button" class="shuffle-btn" onclick="printCourseBooklet()" title="Print selected courses grouped by department">Print Booklet</button>
+      <button type="button" class="shuffle-btn" onclick="saveBookletBaseline()" title="Download the selected courses and their catalog baseline">Save Booklet Baseline</button>
+      <button type="button" class="shuffle-btn" onclick="document.getElementById('baselineFile').click()" title="Compare a saved booklet baseline with this catalog">Compare Baseline</button>
+      <button type="button" class="shuffle-btn" id="printCorrigendumButton" onclick="printCorrigendum()" hidden>Print Corrigendum</button>
+      <input type="file" id="baselineFile" accept="application/json,.json" hidden onchange="loadBookletBaseline(this)">
 			<span class="counter-badge" id="courseCounter">Loading...</span>
 		  </div>
 		</div>
+    <p id="corrigendumStatus" role="status" aria-live="polite"></p>
      
      <div id="filterBody">
        <div class="filter-grid">
@@ -514,6 +547,9 @@
  </footer>
 
  <article id="courseBooklet" aria-label="Filtered course booklet"></article>
+
+ <script type="application/json" id="catalogMetadata">{{CATALOG_METADATA_PLACEHOLDER}}</script>
+ <script type="application/json" id="catalogSnapshot">{{CATALOG_SNAPSHOT_PLACEHOLDER}}</script>
 
  <script>
    {{FILTER_JS_PLACEHOLDER}}

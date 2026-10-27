@@ -7,11 +7,16 @@ Created on Sat Oct 24 21:46:53 2026
 
 import html
 import json
+from hashlib import sha256
 from pathlib import Path
 import re
 import pandas as pd
 
+from catalogue_snapshot import build_snapshot, canonical_json, publish_snapshot, record_id
+
 BASE_DIR = Path(__file__).resolve().parent
+CATALOG_TERM = '2027-spring'
+CATALOG_TERM_LABEL = 'Spring 2027'
 
 TEACHING_METHODS = {
     'LEC': None,
@@ -250,6 +255,10 @@ def display_course_info(data, mode='html'):
         html_cards = []
 
         for group_key, row in parents:
+            matching_labs = labs_by_key.get(group_key, [])
+            record_ids = [record_id(row, CATALOG_TERM)]
+            record_ids.extend(record_id(lab, CATALOG_TERM) for lab in matching_labs)
+            record_ids_attribute = html.escape(json.dumps(record_ids), quote=True)
             all_starts, all_ends, all_days = [], [], []
             meeting_slots = []
 
@@ -378,6 +387,7 @@ def display_course_info(data, mode='html'):
             card = [
                 (
                     f'<div class="course-card" data-subject="{subj}"'
+                    f' data-record-ids="{record_ids_attribute}"'
                     f' data-days="{days_str}" data-start-min="{min_start}"'
                     f' data-end-min="{max_end}" data-wi="{is_wi}"'
                     f' data-has-prereq="{has_prereq}"'
@@ -431,8 +441,6 @@ def display_course_info(data, mode='html'):
                     " </div>",
                 ])
                 
-            # Retrieve matching lab sections
-            matching_labs = labs_by_key.get(group_key, [])
             if matching_labs:
                 card.append('  <div class="nested-labs-container" style="margin-top: 15px; padding: 12px; background-color: #f0f4f8; border-radius: 6px; border: 1px solid #d0d7de;">')
                 card.append(f'    <strong style="color: #002f6c; font-size: 13px;">🔬 Required Co-requisite Lab Sections ({len(matching_labs)} available):</strong>')
@@ -487,6 +495,7 @@ if __name__ == '__main__':
 
     if not excel_file.exists():
         print(f"Error: Could not find '{excel_file}'. Run join-catalogue.py first.")
+        raise SystemExit(1)
     else:
         try:
             template_text = load_file_content(html_template_file)
@@ -494,6 +503,19 @@ if __name__ == '__main__':
 
             df = pd.read_excel(excel_file)
             print(f'Loaded {len(df)} course rows from {excel_file}.')
+            snapshot = build_snapshot(df.where(pd.notna(df), None).to_dict('records'), CATALOG_TERM, CATALOG_TERM_LABEL)
+            metadata = {
+                'schema_version': snapshot['schema_version'],
+                'term': snapshot['term'],
+                'term_label': snapshot['term_label'],
+                'snapshot_id': snapshot['snapshot_id'],
+                'generated_at': snapshot['generated_at'],
+                'snapshot_path': f"catalog-snapshots/{snapshot['snapshot_id']}.json",
+                'source_file_sha256': sha256(excel_file.read_bytes()).hexdigest(),
+                'source_updated_at': None,
+                'source_retrieved_at': None,
+                'identity_issues': snapshot['identity_issues'],
+            }
             
             # 1. Generate course card HTML string
             full_course_html = display_course_info(df)
@@ -508,12 +530,29 @@ if __name__ == '__main__':
                 '{{FILTER_JS_PLACEHOLDER}}', js_text
             ).replace(
                 '{{DEPT_OPTIONS_PLACEHOLDER}}', dept_options
+            ).replace(
+                '{{CATALOG_METADATA_PLACEHOLDER}}', canonical_json(metadata).replace('<', '\\u003c')
+            ).replace(
+                '{{CATALOG_SNAPSHOT_PLACEHOLDER}}', canonical_json(snapshot).replace('<', '\\u003c')
+            ).replace(
+                '{{CATALOG_TERM_LABEL_PLACEHOLDER}}', html.escape(CATALOG_TERM_LABEL)
             )
 
-            with open(BASE_DIR / 'courses.html', 'w', encoding='utf-8') as f:
+            publish_snapshot(snapshot, BASE_DIR / 'catalog-snapshots')
+            output_path = BASE_DIR / 'courses.html'
+            temporary_output = output_path.with_suffix('.html.tmp')
+            with open(temporary_output, 'w', encoding='utf-8') as f:
                 f.write(final_html)
+            temporary_output.replace(output_path)
+            latest_path = BASE_DIR / 'catalog-snapshots' / 'latest.json'
+            temporary_latest = latest_path.with_suffix('.json.tmp')
+            temporary_latest.write_text(canonical_json(metadata) + '\n', encoding='utf-8')
+            temporary_latest.replace(latest_path)
 
             print('🎉 Saved courses.html successfully using htmltemplate.html and filter.js!')
+            if snapshot['identity_issues']:
+                print(f"Warning: {len(snapshot['identity_issues'])} ambiguous section identities retained in snapshot.")
 
         except Exception as e:
             print(f"Error building courses.html: {e}")
+            raise SystemExit(1) from e

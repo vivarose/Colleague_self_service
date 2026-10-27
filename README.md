@@ -100,6 +100,24 @@ Apply filters and hide any unwanted courses, then select **Print Booklet** or us
 
 The booklet includes the active filters, full course details, descriptions, and required lab sections. Choose a printer or **Save as PDF** in the print dialog. For folded booklets, use your printer or PDF viewer's booklet setting; the page itself produces sequential pages, not imposed sheets. Pagination and optional browser headers and footers depend on your print settings.
 
+### Booklet Corrigenda
+
+Each booklet prints its preparation date/time and time zone, catalog build time, and a content-addressed snapshot ID. Build time is not the source's update time: the current spreadsheet supplies no verified retrieval/update timestamp, so these remain unknown rather than being inferred from file modification time.
+
+To preserve a selection, apply filters and hide unwanted courses, then choose **Save Booklet Baseline**. The downloaded JSON records the selected sections and the full catalog snapshot from that edition. Keep this file; a date or snapshot ID alone cannot reconstruct the original selection or its course details.
+
+When a later catalog is published, open its `courses.html`, choose **Compare Baseline**, and select the saved JSON. The page compares the selected sections for changes and removals, and reports all newly added catalog sections for review. Choose **Print Corrigendum** to print the resulting supplement. Save a new baseline from the updated page if you want to track changes from this edition next time. Comparisons are local in the browser; no server or account is required.
+
+Section identity currently uses term, subject, course number, and normalized section because the source has no stable upstream identifier. Conflicting rows with the same identity are preserved as variants and flagged for manual review instead of being classified automatically. Comparisons require matching terms and schema versions. A nonempty but incomplete source feed can still produce misleading additions or removals, so verify upstream feed completeness and all changes in Colleague Self-Service.
+
+The builder creates immutable `catalog-snapshots/<snapshot-id>.json` archives and a `catalog-snapshots/latest.json` pointer, and embeds the current snapshot in `courses.html` so the page can compare baselines even when opened locally. Publish the generated page and snapshot archive together. There is no automatic archive pruning; archives are integrity-checked and never overwritten if a snapshot ID already exists. Invalid identities, empty catalogs, or corrupt archives fail the build before replacing the published page.
+
+Run the snapshot and builder regression tests from the project directory:
+
+```bash
+python -m unittest discover -s tests -v
+```
+
 ---
 
 ## 📜 Credits & Maintenance
