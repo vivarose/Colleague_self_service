@@ -277,6 +277,82 @@
  .hidden {
    display: none !important;
  }
+ #courseBooklet {
+   display: none;
+ }
+ .filter-header, .header-actions {
+   flex-wrap: wrap;
+   gap: 8px;
+ }
+ .header-actions {
+   display: flex;
+   align-items: center;
+ }
+ @page {
+   margin: 16mm;
+ }
+ @media print {
+   body {
+     background: white;
+     padding: 0;
+     color: black;
+   }
+   body > .container, body > footer {
+     display: none !important;
+   }
+   #courseBooklet {
+     display: block;
+     font: 10.5pt/1.4 Georgia, 'Times New Roman', serif;
+     overflow-wrap: anywhere;
+   }
+   #courseBooklet h1 {
+     font-size: 20pt;
+     margin: 0 0 8pt;
+   }
+   #courseBooklet > p {
+     margin: 5pt 0;
+   }
+   #courseBooklet .booklet-disclaimer {
+     font-size: 9pt;
+     border-bottom: 1pt solid black;
+     padding-bottom: 10pt;
+   }
+   #courseBooklet h2 {
+     font-size: 15pt;
+     border-bottom: 0.5pt solid black;
+     margin: 16pt 0 8pt;
+     padding-bottom: 3pt;
+   }
+   #courseBooklet h3 {
+     font-size: 12pt;
+     margin: 0 0 3pt;
+   }
+   #courseBooklet h1, #courseBooklet h2, #courseBooklet h3,
+   .booklet-course > div:first-child {
+     break-after: avoid;
+     break-inside: avoid;
+   }
+   .booklet-course {
+     margin: 0 0 12pt;
+     orphans: 3;
+     widows: 3;
+   }
+   .booklet-course > div {
+     margin-bottom: 5pt;
+   }
+   .booklet-description-label {
+     font-weight: bold;
+     break-after: avoid;
+   }
+   #courseBooklet a {
+     color: black;
+     text-decoration: none;
+   }
+   #courseBooklet .lab-card {
+     margin: 5pt 0 0 10pt;
+     break-inside: avoid;
+   }
+ }
  @media (max-width: 600px) {
    .filter-panel {
      padding: 10px 12px;
@@ -318,8 +394,9 @@
 			<h2>🔍 Spr '27 Course Filters</h2>
 			<button class="header-toggle-btn" id="headerToggleBtn">▲ Hide</button>
 		  </div>
-		  <div style="display: flex; align-items: center; gap: 8px;">
+      <div class="header-actions">
 			<button class="shuffle-btn" onclick="shuffleCourses()" title="Randomize course display order">🔀 Shuffle</button>
+      <button type="button" class="shuffle-btn" onclick="printCourseBooklet()" title="Print selected courses grouped by department">Print Booklet</button>
 			<span class="counter-badge" id="courseCounter">Loading...</span>
 		  </div>
 		</div>
@@ -13459,6 +13536,8 @@
    <div>Hamilton Course Schedule Explorer</div>
  </footer>
 
+ <article id="courseBooklet" aria-label="Filtered course booklet"></article>
+
  <script>
    // Hamilton Course Explorer Filtering Logic
 
@@ -13734,6 +13813,93 @@ function resetFilters() {
   // Re-run filter engine to unhide all cards and update counter
   filterCourses();
 }
+
+function prepareCourseBooklet() {
+  const booklet = document.getElementById('courseBooklet');
+  if (!booklet) return;
+
+  const cards = Array.from(document.querySelectorAll('#courseContainer > .course-card:not(.hidden)'));
+  const collator = new Intl.Collator('en', { numeric: true, sensitivity: 'base' });
+  cards.sort((first, second) =>
+    collator.compare(first.dataset.subject, second.dataset.subject) ||
+    collator.compare(first.querySelector('h3').textContent, second.querySelector('h3').textContent)
+  );
+
+  const heading = document.createElement('h1');
+  heading.textContent = "Hamilton Course Booklet: Spring 2027";
+  const summary = document.createElement('p');
+  summary.textContent = `${cards.length} course${cards.length === 1 ? '' : 's'} selected`;
+  const filters = [];
+  const query = document.getElementById('searchInput').value.trim();
+  if (query) filters.push(`Keyword: ${query}`);
+  for (const [identifier, label] of [
+    ['deptFilter', 'Department'], ['classYearFilter', 'Class year'],
+    ['timeBeforeSelect', 'Starts at or after'], ['timeAfterSelect', 'Ends at or before']
+  ]) {
+    const select = document.getElementById(identifier);
+    if (select.value && select.value !== 'all') {
+      filters.push(`${label}: ${select.selectedOptions[0].textContent}`);
+    }
+  }
+  if (document.getElementById('wiOnly').checked) filters.push('Writing intensive only');
+  if (document.getElementById('noPrereqOnly').checked) filters.push('No prerequisites only');
+  busyBlocks.forEach(block => filters.push(`Unavailable: ${block.label}`));
+  const hiddenCount = document.querySelectorAll('#courseContainer > [data-user-hidden="true"]').length;
+  if (hiddenCount) filters.push(`Manually hidden: ${hiddenCount}`);
+  const filterSummary = document.createElement('p');
+  filterSummary.textContent = filters.length ? filters.join('; ') : 'All courses; no filters applied.';
+  const disclaimer = document.createElement('p');
+  disclaimer.className = 'booklet-disclaimer';
+  disclaimer.textContent = 'Unofficial planning aid. Filtering is imperfect and course details may change. Verify official listings and complete registration through Colleague Self-Service.';
+  booklet.replaceChildren(heading, summary, filterSummary, disclaimer);
+
+  if (!cards.length) {
+    const empty = document.createElement('p');
+    empty.textContent = 'No courses match the current selection.';
+    booklet.appendChild(empty);
+  }
+
+  let department;
+  let section;
+  cards.forEach(card => {
+    if (card.dataset.subject !== department) {
+      department = card.dataset.subject;
+      section = document.createElement('section');
+      const departmentHeading = document.createElement('h2');
+      const option = Array.from(document.getElementById('deptFilter').options)
+        .find(item => item.value === department);
+      departmentHeading.textContent = option ? option.textContent : department;
+      section.appendChild(departmentHeading);
+      booklet.appendChild(section);
+    }
+    const entry = card.cloneNode(true);
+    entry.className = 'booklet-course';
+    entry.querySelectorAll('button').forEach(button => button.remove());
+    [entry, ...entry.querySelectorAll('[style]')].forEach(element => element.removeAttribute('style'));
+    entry.querySelectorAll('b, strong').forEach(label => {
+      if (label.previousSibling?.nodeType === Node.TEXT_NODE) {
+        label.previousSibling.textContent = label.previousSibling.textContent.replace(/[\p{Extended_Pictographic}\uFE0F]/gu, '');
+      }
+      if (label.firstChild?.nodeType === Node.TEXT_NODE) {
+        label.firstChild.textContent = label.firstChild.textContent.replace(/^\p{Extended_Pictographic}\uFE0F?\s*/u, '');
+      }
+    });
+    const descriptionLabel = entry.children[2]?.firstElementChild;
+    if (descriptionLabel?.textContent.trim() === '\u{1F4D6} Description') {
+      descriptionLabel.textContent = 'Description';
+      descriptionLabel.className = 'booklet-description-label';
+    }
+    section.appendChild(entry);
+  });
+}
+
+function printCourseBooklet() {
+  prepareCourseBooklet();
+  window.print();
+}
+
+window.addEventListener('beforeprint', prepareCourseBooklet);
+window.addEventListener('afterprint', () => document.getElementById('courseBooklet')?.replaceChildren());
 
 // Attach Event Listeners on DOM Load
 window.addEventListener('DOMContentLoaded', () => {

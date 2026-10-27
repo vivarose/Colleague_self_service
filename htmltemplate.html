@@ -277,6 +277,82 @@
  .hidden {
    display: none !important;
  }
+ #courseBooklet {
+   display: none;
+ }
+ .filter-header, .header-actions {
+   flex-wrap: wrap;
+   gap: 8px;
+ }
+ .header-actions {
+   display: flex;
+   align-items: center;
+ }
+ @page {
+   margin: 16mm;
+ }
+ @media print {
+   body {
+     background: white;
+     padding: 0;
+     color: black;
+   }
+   body > .container, body > footer {
+     display: none !important;
+   }
+   #courseBooklet {
+     display: block;
+     font: 10.5pt/1.4 Georgia, 'Times New Roman', serif;
+     overflow-wrap: anywhere;
+   }
+   #courseBooklet h1 {
+     font-size: 20pt;
+     margin: 0 0 8pt;
+   }
+   #courseBooklet > p {
+     margin: 5pt 0;
+   }
+   #courseBooklet .booklet-disclaimer {
+     font-size: 9pt;
+     border-bottom: 1pt solid black;
+     padding-bottom: 10pt;
+   }
+   #courseBooklet h2 {
+     font-size: 15pt;
+     border-bottom: 0.5pt solid black;
+     margin: 16pt 0 8pt;
+     padding-bottom: 3pt;
+   }
+   #courseBooklet h3 {
+     font-size: 12pt;
+     margin: 0 0 3pt;
+   }
+   #courseBooklet h1, #courseBooklet h2, #courseBooklet h3,
+   .booklet-course > div:first-child {
+     break-after: avoid;
+     break-inside: avoid;
+   }
+   .booklet-course {
+     margin: 0 0 12pt;
+     orphans: 3;
+     widows: 3;
+   }
+   .booklet-course > div {
+     margin-bottom: 5pt;
+   }
+   .booklet-description-label {
+     font-weight: bold;
+     break-after: avoid;
+   }
+   #courseBooklet a {
+     color: black;
+     text-decoration: none;
+   }
+   #courseBooklet .lab-card {
+     margin: 5pt 0 0 10pt;
+     break-inside: avoid;
+   }
+ }
  @media (max-width: 600px) {
    .filter-panel {
      padding: 10px 12px;
@@ -318,8 +394,9 @@
 			<h2>🔍 Spr '27 Course Filters</h2>
 			<button class="header-toggle-btn" id="headerToggleBtn">▲ Hide</button>
 		  </div>
-		  <div style="display: flex; align-items: center; gap: 8px;">
+      <div class="header-actions">
 			<button class="shuffle-btn" onclick="shuffleCourses()" title="Randomize course display order">🔀 Shuffle</button>
+      <button type="button" class="shuffle-btn" onclick="printCourseBooklet()" title="Print selected courses grouped by department">Print Booklet</button>
 			<span class="counter-badge" id="courseCounter">Loading...</span>
 		  </div>
 		</div>
@@ -435,6 +512,8 @@
    </div>
    <div>Hamilton Course Schedule Explorer</div>
  </footer>
+
+ <article id="courseBooklet" aria-label="Filtered course booklet"></article>
 
  <script>
    {{FILTER_JS_PLACEHOLDER}}
