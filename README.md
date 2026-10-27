@@ -106,6 +106,8 @@ Each booklet prints its preparation date/time and time zone, catalog build time,
 
 To preserve a selection, apply filters and hide unwanted courses, then choose **Save Booklet Baseline**. The downloaded JSON records the selected sections and the full catalog snapshot from that edition. Keep this file; a date or snapshot ID alone cannot reconstruct the original selection or its course details.
 
+Save the baseline before changing the selection used for your printed booklet. Saving and printing are separate actions; neither confirms that a physical printout was produced. Baseline files must contain a nonempty selection with unique section identities and string-valued catalog fields.
+
 When a later catalog is published, open its `courses.html`, choose **Compare Baseline**, and select the saved JSON. The page compares the selected sections for changes and removals, and reports all newly added catalog sections for review. Choose **Print Corrigendum** to print the resulting supplement. Save a new baseline from the updated page if you want to track changes from this edition next time. Comparisons are local in the browser; no server or account is required.
 
 Section identity currently uses term, subject, course number, and normalized section because the source has no stable upstream identifier. Conflicting rows with the same identity are preserved as variants and flagged for manual review instead of being classified automatically. Comparisons require matching terms and schema versions. A nonempty but incomplete source feed can still produce misleading additions or removals, so verify upstream feed completeness and all changes in Colleague Self-Service.
@@ -116,7 +118,10 @@ Run the snapshot and builder regression tests from the project directory:
 
 ```bash
 python -m unittest discover -s tests -v
+node --test tests/corrigendum.test.js
 ```
+
+The Node.js tests cover baseline validation, comparison ordering, lab changes, file-loading races, and print-event rendering and cleanup using a lightweight DOM harness. Check final pagination and the print dialog in a real browser before publishing.
 
 ---
 

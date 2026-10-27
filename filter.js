@@ -297,13 +297,19 @@ function validateBookletBaseline(baseline) {
     throw new Error('The baseline does not contain a supported catalog snapshot.');
   }
   if (baseline.snapshot_id !== snapshot.snapshot_id || baseline.term !== snapshot.term ||
-      !Array.isArray(baseline.selected_record_ids)) {
+      typeof snapshot.snapshot_id !== 'string' || !/^[a-f0-9]{64}$/.test(snapshot.snapshot_id) ||
+      typeof snapshot.term !== 'string' || !snapshot.term ||
+      typeof baseline.created_at !== 'string' || !Number.isFinite(Date.parse(baseline.created_at)) ||
+      !Array.isArray(baseline.selected_record_ids) || !baseline.selected_record_ids.length ||
+      new Set(baseline.selected_record_ids).size !== baseline.selected_record_ids.length) {
     throw new Error('The baseline metadata does not match its catalog snapshot.');
   }
   const recordIds = new Set();
   for (const record of snapshot.records) {
     if (!record || typeof record.id !== 'string' || !Array.isArray(record.variants) ||
-        record.variants.length === 0 || recordIds.has(record.id)) {
+        record.variants.length === 0 || recordIds.has(record.id) ||
+        record.variants.some(variant => !variant || typeof variant !== 'object' ||
+          Array.isArray(variant) || Object.values(variant).some(value => typeof value !== 'string'))) {
       throw new Error('The baseline catalog contains an invalid or duplicate section record.');
     }
     recordIds.add(record.id);
@@ -335,7 +341,9 @@ function compareCatalogSnapshots(baseline, current, selectedIds) {
       });
     } else if (!latest) {
       result.removed.push({ id, record: previous });
-    } else if (JSON.stringify(previous.variants) !== JSON.stringify(latest.variants)) {
+    } else if ([...new Set([
+      ...Object.keys(previous.variants[0]), ...Object.keys(latest.variants[0])
+    ])].some(field => previous.variants[0][field] !== latest.variants[0][field])) {
       result.changed.push({ id, before: previous, current: latest });
     } else {
       result.unchanged++;
@@ -388,6 +396,7 @@ function saveBookletBaseline() {
       selected_record_ids: [...new Set(selectedIds)],
       snapshot,
     };
+    validateBookletBaseline(baseline);
     const blob = new Blob([JSON.stringify(baseline, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -498,12 +507,19 @@ function prepareCorrigendumBooklet() {
 }
 
 let loadedCorrigendum = null;
+let comparisonRequest = 0;
 
 async function loadBookletBaseline(input) {
   const file = input.files?.[0];
   if (!file) return;
+  const request = ++comparisonRequest;
+  loadedCorrigendum = null;
+  document.getElementById('printCorrigendumButton').hidden = true;
+  setCorrigendumStatus('Comparing baseline...');
   try {
-    const baseline = validateBookletBaseline(JSON.parse(await file.text()));
+    const text = await file.text();
+    if (request !== comparisonRequest) return;
+    const baseline = validateBookletBaseline(JSON.parse(text));
     const current = getCurrentCatalogSnapshot();
     if (baseline.term !== current.term) {
       throw new Error(`This baseline is for ${baseline.term}; the current catalog is ${current.term}.`);
@@ -516,12 +532,13 @@ async function loadBookletBaseline(input) {
       `Comparison complete: ${changes.changed.length} changed, ${changes.removed.length} removed, ${changes.added.length} new catalog sections, ${changes.ambiguous.length} ambiguous, ${changes.unchanged} unchanged.`
     );
   } catch (error) {
+    if (request !== comparisonRequest) return;
     loadedCorrigendum = null;
     document.getElementById('printCorrigendumButton').hidden = true;
     setCorrigendumStatus(`Could not compare baseline: ${error.message}`, true);
     console.error('Could not compare booklet baseline:', error);
   } finally {
-    input.value = '';
+    if (request === comparisonRequest) input.value = '';
   }
 }
 
@@ -573,7 +590,7 @@ function prepareCourseBooklet() {
   booklet.replaceChildren(heading, provenance, summary, filterSummary, disclaimer);
   if (metadata?.identity_issues.length) {
     const identityWarning = document.createElement('p');
-    identityWarning.textContent = `Catalog identity warning: ${metadata.identity_issues.length} ambiguous section key(s). Automatic corrigendum comparisons are not yet available.`;
+    identityWarning.textContent = `Catalog identity warning: ${metadata.identity_issues.length} ambiguous section key(s). These identities require manual review in a corrigendum.`;
     booklet.appendChild(identityWarning);
   }
 
