@@ -85,12 +85,14 @@ pip install pandas openpyxl
 
 ### Running the Builder
 
-1. Ensure `merged_course_schedule.xlsx`, `htmltemplate.html`, and `filter.js` are in the working directory.
+1. Ensure `merged_course_schedule.xlsx`, `htmltemplate.html`, and `filter.js` are in the same directory as `course_info_to_html.py`.
 2. Run the build script:
    ```bash
    python course_info_to_html.py
    ```
 3. Open `courses.html` in any modern web browser.
+
+The builder resolves input files relative to its own directory and writes `courses.html` there. You can run it from another working directory by supplying the path to `course_info_to_html.py`.
 
 ---
 

@@ -7,11 +7,11 @@ Created on Sat Oct 24 21:46:53 2026
 
 import html
 import json
-import os
+from pathlib import Path
 import re
 import pandas as pd
 
-os.chdir(r'C:\Users\vhorowit\Documents\GitHub\Colleague_self_service')
+BASE_DIR = Path(__file__).resolve().parent
 
 TEACHING_METHODS = {
     'LEC': None,
@@ -472,19 +472,20 @@ def display_course_info(data, mode='html'):
 
 
 def load_file_content(filename):
-    """Loads text content from a file in the current directory."""
-    if not os.path.exists(filename):
-        raise FileNotFoundError(f"Required file '{filename}' was not found in the current directory.")
-    with open(filename, 'r', encoding='utf-8') as f:
+    """Loads text content from a file relative to the script directory."""
+    file_path = BASE_DIR / filename
+    if not file_path.exists():
+        raise FileNotFoundError(f"Required file '{file_path}' was not found.")
+    with open(file_path, 'r', encoding='utf-8') as f:
         return f.read()
 
 
 if __name__ == '__main__':
-    excel_file = 'merged_course_schedule.xlsx'
+    excel_file = BASE_DIR / 'merged_course_schedule.xlsx'
     html_template_file = 'htmltemplate.html'
     js_file = 'filter.js'
 
-    if not os.path.exists(excel_file):
+    if not excel_file.exists():
         print(f"Error: Could not find '{excel_file}'. Run join-catalogue.py first.")
     else:
         try:
@@ -509,7 +510,7 @@ if __name__ == '__main__':
                 '{{DEPT_OPTIONS_PLACEHOLDER}}', dept_options
             )
 
-            with open('courses.html', 'w', encoding='utf-8') as f:
+            with open(BASE_DIR / 'courses.html', 'w', encoding='utf-8') as f:
                 f.write(final_html)
 
             print('🎉 Saved courses.html successfully using htmltemplate.html and filter.js!')
