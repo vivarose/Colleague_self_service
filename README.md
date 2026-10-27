@@ -94,6 +94,12 @@ pip install pandas openpyxl
 
 The builder resolves input files relative to its own directory and writes `courses.html` there. You can run it from another working directory by supplying the path to `course_info_to_html.py`.
 
+### Printing a Course Booklet
+
+Apply filters and hide any unwanted courses, then select **Print Booklet** or use your browser's Print command. The booklet contains only the currently visible courses, grouped by department and sorted by course number and section. Printing does not change the on-screen course order.
+
+The booklet includes the active filters, full course details, descriptions, and required lab sections. Choose a printer or **Save as PDF** in the print dialog. For folded booklets, use your printer or PDF viewer's booklet setting; the page itself produces sequential pages, not imposed sheets. Pagination and optional browser headers and footers depend on your print settings.
+
 ---
 
 ## 📜 Credits & Maintenance

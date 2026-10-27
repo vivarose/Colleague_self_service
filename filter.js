@@ -273,6 +273,93 @@ function resetFilters() {
   filterCourses();
 }
 
+function prepareCourseBooklet() {
+  const booklet = document.getElementById('courseBooklet');
+  if (!booklet) return;
+
+  const cards = Array.from(document.querySelectorAll('#courseContainer > .course-card:not(.hidden)'));
+  const collator = new Intl.Collator('en', { numeric: true, sensitivity: 'base' });
+  cards.sort((first, second) =>
+    collator.compare(first.dataset.subject, second.dataset.subject) ||
+    collator.compare(first.querySelector('h3').textContent, second.querySelector('h3').textContent)
+  );
+
+  const heading = document.createElement('h1');
+  heading.textContent = "Hamilton Course Booklet: Spring 2027";
+  const summary = document.createElement('p');
+  summary.textContent = `${cards.length} course${cards.length === 1 ? '' : 's'} selected`;
+  const filters = [];
+  const query = document.getElementById('searchInput').value.trim();
+  if (query) filters.push(`Keyword: ${query}`);
+  for (const [identifier, label] of [
+    ['deptFilter', 'Department'], ['classYearFilter', 'Class year'],
+    ['timeBeforeSelect', 'Starts at or after'], ['timeAfterSelect', 'Ends at or before']
+  ]) {
+    const select = document.getElementById(identifier);
+    if (select.value && select.value !== 'all') {
+      filters.push(`${label}: ${select.selectedOptions[0].textContent}`);
+    }
+  }
+  if (document.getElementById('wiOnly').checked) filters.push('Writing intensive only');
+  if (document.getElementById('noPrereqOnly').checked) filters.push('No prerequisites only');
+  busyBlocks.forEach(block => filters.push(`Unavailable: ${block.label}`));
+  const hiddenCount = document.querySelectorAll('#courseContainer > [data-user-hidden="true"]').length;
+  if (hiddenCount) filters.push(`Manually hidden: ${hiddenCount}`);
+  const filterSummary = document.createElement('p');
+  filterSummary.textContent = filters.length ? filters.join('; ') : 'All courses; no filters applied.';
+  const disclaimer = document.createElement('p');
+  disclaimer.className = 'booklet-disclaimer';
+  disclaimer.textContent = 'Unofficial planning aid. Filtering is imperfect and course details may change. Verify official listings and complete registration through Colleague Self-Service.';
+  booklet.replaceChildren(heading, summary, filterSummary, disclaimer);
+
+  if (!cards.length) {
+    const empty = document.createElement('p');
+    empty.textContent = 'No courses match the current selection.';
+    booklet.appendChild(empty);
+  }
+
+  let department;
+  let section;
+  cards.forEach(card => {
+    if (card.dataset.subject !== department) {
+      department = card.dataset.subject;
+      section = document.createElement('section');
+      const departmentHeading = document.createElement('h2');
+      const option = Array.from(document.getElementById('deptFilter').options)
+        .find(item => item.value === department);
+      departmentHeading.textContent = option ? option.textContent : department;
+      section.appendChild(departmentHeading);
+      booklet.appendChild(section);
+    }
+    const entry = card.cloneNode(true);
+    entry.className = 'booklet-course';
+    entry.querySelectorAll('button').forEach(button => button.remove());
+    [entry, ...entry.querySelectorAll('[style]')].forEach(element => element.removeAttribute('style'));
+    entry.querySelectorAll('b, strong').forEach(label => {
+      if (label.previousSibling?.nodeType === Node.TEXT_NODE) {
+        label.previousSibling.textContent = label.previousSibling.textContent.replace(/[\p{Extended_Pictographic}\uFE0F]/gu, '');
+      }
+      if (label.firstChild?.nodeType === Node.TEXT_NODE) {
+        label.firstChild.textContent = label.firstChild.textContent.replace(/^\p{Extended_Pictographic}\uFE0F?\s*/u, '');
+      }
+    });
+    const descriptionLabel = entry.children[2]?.firstElementChild;
+    if (descriptionLabel?.textContent.trim() === '\u{1F4D6} Description') {
+      descriptionLabel.textContent = 'Description';
+      descriptionLabel.className = 'booklet-description-label';
+    }
+    section.appendChild(entry);
+  });
+}
+
+function printCourseBooklet() {
+  prepareCourseBooklet();
+  window.print();
+}
+
+window.addEventListener('beforeprint', prepareCourseBooklet);
+window.addEventListener('afterprint', () => document.getElementById('courseBooklet')?.replaceChildren());
+
 // Attach Event Listeners on DOM Load
 window.addEventListener('DOMContentLoaded', () => {
   updateVisitCount();
