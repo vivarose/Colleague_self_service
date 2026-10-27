@@ -273,19 +273,296 @@ function resetFilters() {
   filterCourses();
 }
 
+function getVisibleBookletCards() {
+  const cards = Array.from(document.querySelectorAll('#courseContainer > .course-card:not(.hidden)'));
+  const collator = new Intl.Collator('en', { numeric: true, sensitivity: 'base' });
+  return cards.sort((first, second) =>
+    collator.compare(first.dataset.subject, second.dataset.subject) ||
+    collator.compare(first.querySelector('h3').textContent, second.querySelector('h3').textContent)
+  );
+}
+
+function getCurrentCatalogSnapshot() {
+  const element = document.getElementById('catalogSnapshot');
+  if (!element) throw new Error('The current catalog snapshot is missing from this page.');
+  return JSON.parse(element.textContent);
+}
+
+function validateBookletBaseline(baseline) {
+  if (baseline?.format !== 'hamilton-course-booklet-baseline' || baseline.format_version !== 1) {
+    throw new Error('This is not a supported Hamilton booklet baseline file.');
+  }
+  const snapshot = baseline.snapshot;
+  if (!snapshot || snapshot.schema_version !== 1 || !Array.isArray(snapshot.records)) {
+    throw new Error('The baseline does not contain a supported catalog snapshot.');
+  }
+  if (baseline.snapshot_id !== snapshot.snapshot_id || baseline.term !== snapshot.term ||
+      typeof snapshot.snapshot_id !== 'string' || !/^[a-f0-9]{64}$/.test(snapshot.snapshot_id) ||
+      typeof snapshot.term !== 'string' || !snapshot.term ||
+      typeof baseline.created_at !== 'string' || !Number.isFinite(Date.parse(baseline.created_at)) ||
+      !Array.isArray(baseline.selected_record_ids) || !baseline.selected_record_ids.length ||
+      new Set(baseline.selected_record_ids).size !== baseline.selected_record_ids.length) {
+    throw new Error('The baseline metadata does not match its catalog snapshot.');
+  }
+  const recordIds = new Set();
+  for (const record of snapshot.records) {
+    if (!record || typeof record.id !== 'string' || !Array.isArray(record.variants) ||
+        record.variants.length === 0 || recordIds.has(record.id) ||
+        record.variants.some(variant => !variant || typeof variant !== 'object' ||
+          Array.isArray(variant) || Object.values(variant).some(value => typeof value !== 'string'))) {
+      throw new Error('The baseline catalog contains an invalid or duplicate section record.');
+    }
+    recordIds.add(record.id);
+  }
+  if (baseline.selected_record_ids.some(id => typeof id !== 'string' || !recordIds.has(id))) {
+    throw new Error('The baseline selection refers to a section missing from its catalog snapshot.');
+  }
+  return baseline;
+}
+
+function compareCatalogSnapshots(baseline, current, selectedIds) {
+  if (baseline.term !== current.term || baseline.schema_version !== current.schema_version) {
+    throw new Error('The baseline and current catalog must use the same term and schema.');
+  }
+  const baselineById = new Map(baseline.records.map(record => [record.id, record]));
+  const currentById = new Map(current.records.map(record => [record.id, record]));
+  const result = { changed: [], removed: [], added: [], ambiguous: [], unchanged: 0 };
+
+  for (const id of selectedIds) {
+    const previous = baselineById.get(id);
+    if (!previous) throw new Error(`Selected section ${id} is missing from the baseline snapshot.`);
+    const latest = currentById.get(id);
+    if (previous.variants.length !== 1 || (latest && latest.variants.length !== 1)) {
+      result.ambiguous.push({
+        id,
+        baseline_count: previous.variants.length,
+        current_count: latest?.variants.length || 0,
+        record: latest || previous,
+      });
+    } else if (!latest) {
+      result.removed.push({ id, record: previous });
+    } else if ([...new Set([
+      ...Object.keys(previous.variants[0]), ...Object.keys(latest.variants[0])
+    ])].some(field => previous.variants[0][field] !== latest.variants[0][field])) {
+      result.changed.push({ id, before: previous, current: latest });
+    } else {
+      result.unchanged++;
+    }
+  }
+
+  for (const record of current.records) {
+    if (baselineById.has(record.id)) continue;
+    if (record.variants.length === 1) {
+      result.added.push(record);
+    } else {
+      result.ambiguous.push({
+        id: record.id,
+        baseline_count: 0,
+        current_count: record.variants.length,
+        record,
+      });
+    }
+  }
+  return result;
+}
+
+function setCorrigendumStatus(message, isError = false) {
+  const status = document.getElementById('corrigendumStatus');
+  if (!status) return;
+  status.textContent = message;
+  status.setAttribute('aria-live', isError ? 'assertive' : 'polite');
+}
+
+function saveBookletBaseline() {
+  try {
+    const cards = getVisibleBookletCards();
+    if (!cards.length) throw new Error('Select at least one visible course before saving a baseline.');
+    const snapshot = getCurrentCatalogSnapshot();
+    const metadata = JSON.parse(document.getElementById('catalogMetadata').textContent);
+    const selectedIds = [];
+    for (const card of cards) {
+      const ids = JSON.parse(card.dataset.recordIds || '[]');
+      if (!ids.length) throw new Error('A selected course is missing its catalog section identity.');
+      selectedIds.push(...ids);
+    }
+    const baseline = {
+      format: 'hamilton-course-booklet-baseline',
+      format_version: 1,
+      created_at: new Date().toISOString(),
+      term: snapshot.term,
+      term_label: snapshot.term_label,
+      snapshot_id: snapshot.snapshot_id,
+      selected_course_count: cards.length,
+      selected_record_ids: [...new Set(selectedIds)],
+      snapshot,
+    };
+    validateBookletBaseline(baseline);
+    const blob = new Blob([JSON.stringify(baseline, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${snapshot.term}-booklet-baseline.json`;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    setCorrigendumStatus(
+      `Saved ${cards.length} selected course${cards.length === 1 ? '' : 's'} from snapshot ${metadata.snapshot_id}. Keep this JSON file to compare a future catalog.`
+    );
+  } catch (error) {
+    setCorrigendumStatus(`Could not save booklet baseline: ${error.message}`, true);
+    console.error('Could not save booklet baseline:', error);
+  }
+}
+
+function recordLabel(record) {
+  const row = record.variants[0] || {};
+  const subject = row['Subject Code'] || '';
+  const number = row['Course Number+'] || row['Course Number'] || '';
+  const section = row.Section ? `-${row.Section}` : '';
+  const title = row['Course Name'] || row.TITLE || '';
+  return `${subject} ${number}${section}${title ? `: ${title}` : ''}`.trim();
+}
+
+function appendCorrigendumEntry(container, heading, description, fields) {
+  const entry = document.createElement('section');
+  entry.className = 'corrigendum-entry';
+  const title = document.createElement('h3');
+  title.textContent = heading;
+  entry.appendChild(title);
+  const note = document.createElement('p');
+  note.textContent = description;
+  entry.appendChild(note);
+  if (fields.length) {
+    const table = document.createElement('table');
+    fields.forEach(([label, before, after], index) => {
+      const row = document.createElement('tr');
+      [label, before, after].forEach(value => {
+        const cell = document.createElement(index === 0 ? 'th' : 'td');
+        cell.textContent = value;
+        row.appendChild(cell);
+      });
+      table.appendChild(row);
+    });
+    entry.appendChild(table);
+  }
+  container.appendChild(entry);
+}
+
+function prepareCorrigendumBooklet() {
+  if (!loadedCorrigendum) return;
+  const booklet = document.getElementById('courseBooklet');
+  if (!booklet) return;
+  const { baseline, current, changes } = loadedCorrigendum;
+  const heading = document.createElement('h1');
+  heading.textContent = `Hamilton Course Corrigendum: ${current.term_label || baseline.term_label}`;
+  const provenance = document.createElement('p');
+  provenance.className = 'booklet-provenance';
+  provenance.textContent = `Baseline snapshot: ${baseline.snapshot_id} (${baseline.created_at}); current snapshot: ${current.snapshot_id} (${current.generated_at}).`;
+  const summary = document.createElement('p');
+  summary.textContent = `${changes.changed.length} changed, ${changes.removed.length} removed from your selection, ${changes.added.length} new catalog section${changes.added.length === 1 ? '' : 's'}, ${changes.ambiguous.length} ambiguous, ${changes.unchanged} unchanged.`;
+  const disclaimer = document.createElement('p');
+  disclaimer.className = 'booklet-disclaimer';
+  disclaimer.textContent = 'Unofficial catalog comparison. Ambiguous section identities require manual review; verify all changes in Colleague Self-Service.';
+  booklet.replaceChildren(heading, provenance, summary, disclaimer);
+
+  changes.changed.forEach(change => {
+    const oldRow = change.before.variants[0];
+    const newRow = change.current.variants[0];
+    const fields = [...new Set([...Object.keys(oldRow), ...Object.keys(newRow)])]
+      .sort()
+      .filter(field => oldRow[field] !== newRow[field])
+      .map(field => [field, oldRow[field] || '(blank)', newRow[field] || '(blank)']);
+    appendCorrigendumEntry(booklet, recordLabel(change.current), 'Changed in the current catalog.', [
+      ['Field', 'Baseline', 'Current'],
+      ...fields,
+    ]);
+  });
+  changes.removed.forEach(change => {
+    appendCorrigendumEntry(
+      booklet, recordLabel(change.record), 'This selected section is absent from the current catalog.', []
+    );
+  });
+  changes.added.forEach(record => {
+    const row = record.variants[0];
+    const fields = Object.keys(row).sort()
+      .filter(field => row[field])
+      .map(field => [field, '', row[field]]);
+    appendCorrigendumEntry(booklet, recordLabel(record), 'New catalog section; it was not present in the baseline.', [
+      ['Field', 'Baseline', 'Current'],
+      ...fields,
+    ]);
+  });
+  changes.ambiguous.forEach(issue => {
+    appendCorrigendumEntry(
+      booklet,
+      recordLabel(issue.record) || issue.id,
+      `Not compared automatically: ${issue.baseline_count} baseline variant(s), ${issue.current_count} current variant(s). Review this section identity manually.`,
+      []
+    );
+  });
+  if (!changes.changed.length && !changes.removed.length && !changes.added.length && !changes.ambiguous.length) {
+    const noChanges = document.createElement('p');
+    noChanges.textContent = 'No changes were found for the saved selection.';
+    booklet.appendChild(noChanges);
+  }
+}
+
+let loadedCorrigendum = null;
+let comparisonRequest = 0;
+
+async function loadBookletBaseline(input) {
+  const file = input.files?.[0];
+  if (!file) return;
+  const request = ++comparisonRequest;
+  loadedCorrigendum = null;
+  document.getElementById('printCorrigendumButton').hidden = true;
+  setCorrigendumStatus('Comparing baseline...');
+  try {
+    const text = await file.text();
+    if (request !== comparisonRequest) return;
+    const baseline = validateBookletBaseline(JSON.parse(text));
+    const current = getCurrentCatalogSnapshot();
+    if (baseline.term !== current.term) {
+      throw new Error(`This baseline is for ${baseline.term}; the current catalog is ${current.term}.`);
+    }
+    const changes = compareCatalogSnapshots(baseline.snapshot, current, baseline.selected_record_ids);
+    loadedCorrigendum = { baseline, current, changes };
+    prepareCorrigendumBooklet();
+    document.getElementById('printCorrigendumButton').hidden = false;
+    setCorrigendumStatus(
+      `Comparison complete: ${changes.changed.length} changed, ${changes.removed.length} removed, ${changes.added.length} new catalog sections, ${changes.ambiguous.length} ambiguous, ${changes.unchanged} unchanged.`
+    );
+  } catch (error) {
+    if (request !== comparisonRequest) return;
+    loadedCorrigendum = null;
+    document.getElementById('printCorrigendumButton').hidden = true;
+    setCorrigendumStatus(`Could not compare baseline: ${error.message}`, true);
+    console.error('Could not compare booklet baseline:', error);
+  } finally {
+    if (request === comparisonRequest) input.value = '';
+  }
+}
+
 function prepareCourseBooklet() {
   const booklet = document.getElementById('courseBooklet');
   if (!booklet) return;
 
-  const cards = Array.from(document.querySelectorAll('#courseContainer > .course-card:not(.hidden)'));
-  const collator = new Intl.Collator('en', { numeric: true, sensitivity: 'base' });
-  cards.sort((first, second) =>
-    collator.compare(first.dataset.subject, second.dataset.subject) ||
-    collator.compare(first.querySelector('h3').textContent, second.querySelector('h3').textContent)
-  );
+  const cards = getVisibleBookletCards();
 
+  const metadataElement = document.getElementById('catalogMetadata');
+  const metadata = metadataElement ? JSON.parse(metadataElement.textContent) : null;
+  const preparedAt = new Date();
   const heading = document.createElement('h1');
-  heading.textContent = "Hamilton Course Booklet: Spring 2027";
+  heading.textContent = `Hamilton Course Booklet: ${metadata?.term_label || 'Term unavailable'}`;
+  const provenance = document.createElement('p');
+  provenance.className = 'booklet-provenance';
+  const dateLabel = preparedAt.toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
+  provenance.textContent = `Prepared: ${dateLabel} (${Intl.DateTimeFormat().resolvedOptions().timeZone}); ${preparedAt.toISOString()}`;
+  if (metadata) {
+    provenance.textContent += ` | Catalog built: ${metadata.generated_at} | Snapshot: ${metadata.snapshot_id}`;
+    provenance.textContent += metadata.source_updated_at ? ` | Source updated: ${metadata.source_updated_at}` : ' | Source update time unavailable';
+  } else {
+    provenance.textContent += ' | Catalog provenance unavailable';
+  }
   const summary = document.createElement('p');
   summary.textContent = `${cards.length} course${cards.length === 1 ? '' : 's'} selected`;
   const filters = [];
@@ -310,7 +587,12 @@ function prepareCourseBooklet() {
   const disclaimer = document.createElement('p');
   disclaimer.className = 'booklet-disclaimer';
   disclaimer.textContent = 'Unofficial planning aid. Filtering is imperfect and course details may change. Verify official listings and complete registration through Colleague Self-Service.';
-  booklet.replaceChildren(heading, summary, filterSummary, disclaimer);
+  booklet.replaceChildren(heading, provenance, summary, filterSummary, disclaimer);
+  if (metadata?.identity_issues.length) {
+    const identityWarning = document.createElement('p');
+    identityWarning.textContent = `Catalog identity warning: ${metadata.identity_issues.length} ambiguous section key(s). These identities require manual review in a corrigendum.`;
+    booklet.appendChild(identityWarning);
+  }
 
   if (!cards.length) {
     const empty = document.createElement('p');
@@ -353,23 +635,98 @@ function prepareCourseBooklet() {
 }
 
 function printCourseBooklet() {
+  printMode = 'booklet';
   prepareCourseBooklet();
   window.print();
 }
 
-window.addEventListener('beforeprint', prepareCourseBooklet);
-window.addEventListener('afterprint', () => document.getElementById('courseBooklet')?.replaceChildren());
+function printCorrigendum() {
+  if (!loadedCorrigendum) {
+    setCorrigendumStatus('Load a valid baseline before printing a corrigendum.', true);
+    return;
+  }
+  printMode = 'corrigendum';
+  prepareCorrigendumBooklet();
+  window.print();
+}
 
-// Attach Event Listeners on DOM Load
-window.addEventListener('DOMContentLoaded', () => {
-  updateVisitCount();
-  document.getElementById('searchInput')?.addEventListener('input', filterCourses);
-  document.getElementById('classYearFilter')?.addEventListener('change', filterCourses);
-  document.getElementById('deptFilter')?.addEventListener('change', filterCourses); // Moved here!
-  document.getElementById('timeBeforeSelect')?.addEventListener('change', filterCourses);
-  document.getElementById('timeAfterSelect')?.addEventListener('change', filterCourses);
-  document.getElementById('wiOnly')?.addEventListener('change', filterCourses);
-  document.getElementById('noPrereqOnly')?.addEventListener('change', filterCourses);
+let printMode = 'booklet';
 
-  filterCourses();
-});
+async function requestDailyRefresh() {
+  const status = document.getElementById('refreshStatus');
+  if (!status || location.protocol === 'file:') return;
+  try {
+    const configResponse = await fetch(new URL('refresh-config.json', location.href), { cache: 'no-store' });
+    if (!configResponse.ok) throw new Error(`Refresh configuration HTTP ${configResponse.status}`);
+    const config = await configResponse.json();
+    if (!config.service_url) {
+      status.textContent = 'Daily refresh is not configured; showing the published catalog.';
+      return;
+    }
+    const service = new URL(config.service_url);
+    if (service.protocol !== 'https:') throw new Error('Refresh service must use HTTPS.');
+    let path = '/refresh';
+    for (let attempt = 0; attempt < 120; attempt++) {
+      const response = await fetch(new URL(path, service), {
+        method: path === '/refresh' ? 'POST' : 'GET', cache: 'no-store'
+      });
+      if (!response.ok) throw new Error(`Refresh service HTTP ${response.status}`);
+      const result = await response.json();
+      if (result.status === 'succeeded') {
+        const metadata = JSON.parse(document.getElementById('catalogMetadata').textContent);
+        status.textContent = `Catalog refreshed for ${result.date} (fixed EST). `;
+        if (metadata.refresh_date !== result.date) {
+          const link = document.createElement('a');
+          const updated = new URL(location.href);
+          updated.searchParams.set('refresh', Date.now().toString());
+          link.href = updated.href;
+          link.textContent = 'Reload to use the refreshed catalog (resets filters).';
+          status.appendChild(link);
+        }
+        return;
+      }
+      if (result.status === 'failed') {
+        throw new Error(result.message || 'The refresh workflow failed; a later visit may retry.');
+      }
+      if (!['pending', 'not_requested'].includes(result.status)) {
+        throw new Error('Refresh service returned an unknown status.');
+      }
+      status.textContent = 'Catalog refresh queued or running; showing the last published data.';
+      path = result.status === 'not_requested' ? '/refresh' : '/status';
+      await new Promise(resolve => setTimeout(resolve, 15_000));
+    }
+    throw new Error('Refresh is still pending. Reopen the app later to check its status.');
+  } catch (error) {
+    status.textContent = `Daily refresh unavailable: ${error.message} Showing the last published data.`;
+    console.error('Daily catalog refresh:', error);
+  }
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeprint', () => {
+    if (printMode === 'corrigendum') prepareCorrigendumBooklet();
+    else prepareCourseBooklet();
+  });
+  window.addEventListener('afterprint', () => {
+    document.getElementById('courseBooklet')?.replaceChildren();
+    printMode = 'booklet';
+  });
+
+  window.addEventListener('DOMContentLoaded', () => {
+    requestDailyRefresh();
+    updateVisitCount();
+    document.getElementById('searchInput')?.addEventListener('input', filterCourses);
+    document.getElementById('classYearFilter')?.addEventListener('change', filterCourses);
+    document.getElementById('deptFilter')?.addEventListener('change', filterCourses);
+    document.getElementById('timeBeforeSelect')?.addEventListener('change', filterCourses);
+    document.getElementById('timeAfterSelect')?.addEventListener('change', filterCourses);
+    document.getElementById('wiOnly')?.addEventListener('change', filterCourses);
+    document.getElementById('noPrereqOnly')?.addEventListener('change', filterCourses);
+
+    filterCourses();
+  });
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { compareCatalogSnapshots, validateBookletBaseline };
+}

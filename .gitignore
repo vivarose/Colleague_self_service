@@ -201,6 +201,11 @@ cython_debug/
 .cursorignore
 .cursorindexingignore
 
+# Local Cloudflare tooling and secrets
+.wrangler/
+.dev.vars
+node_modules/
+
 # Marimo
 marimo/_static/
 marimo/_lsp/

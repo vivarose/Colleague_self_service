@@ -100,6 +100,47 @@ Apply filters and hide any unwanted courses, then select **Print Booklet** or us
 
 The booklet includes the active filters, full course details, descriptions, and required lab sections. Choose a printer or **Save as PDF** in the print dialog. For folded booklets, use your printer or PDF viewer's booklet setting; the page itself produces sequential pages, not imposed sheets. Pagination and optional browser headers and footers depend on your print settings.
 
+### Booklet Corrigenda
+
+Each booklet prints its preparation date/time and time zone, catalog build time, and a content-addressed snapshot ID. Build time is not the source's update time: the current spreadsheet supplies no verified retrieval/update timestamp, so these remain unknown rather than being inferred from file modification time.
+
+To preserve a selection, apply filters and hide unwanted courses, then choose **Save Booklet Baseline**. The downloaded JSON records the selected sections and the full catalog snapshot from that edition. Keep this file; a date or snapshot ID alone cannot reconstruct the original selection or its course details.
+
+Save the baseline before changing the selection used for your printed booklet. Saving and printing are separate actions; neither confirms that a physical printout was produced. Baseline files must contain a nonempty selection with unique section identities and string-valued catalog fields.
+
+When a later catalog is published, open its `courses.html`, choose **Compare Baseline**, and select the saved JSON. The page compares the selected sections for changes and removals, and reports all newly added catalog sections for review. Choose **Print Corrigendum** to print the resulting supplement. Save a new baseline from the updated page if you want to track changes from this edition next time. Comparisons are local in the browser; no server or account is required.
+
+Section identity currently uses term, subject, course number, and normalized section because the source has no stable upstream identifier. Conflicting rows with the same identity are preserved as variants and flagged for manual review instead of being classified automatically. Comparisons require matching terms and schema versions. A nonempty but incomplete source feed can still produce misleading additions or removals, so verify upstream feed completeness and all changes in Colleague Self-Service.
+
+The builder creates immutable `catalog-snapshots/<snapshot-id>.json` archives and a `catalog-snapshots/latest.json` pointer, and embeds the current snapshot in `courses.html` so the page can compare baselines even when opened locally. Publish the generated page and snapshot archive together. There is no automatic archive pruning; archives are integrity-checked and never overwritten if a snapshot ID already exists. Invalid identities, empty catalogs, or corrupt archives fail the build before replacing the published page.
+
+### On-demand daily source refresh
+
+The optional [refresh service](refresh-service/README.md) checks for updates when
+someone opens the app. A shared Cloudflare Durable Object dispatches GitHub
+Actions only for the first request on a date in **fixed EST (UTC-05:00)**. After
+success, later visits do not download source data again that date. Failed
+attempts can be retried; simultaneous visitors share the pending attempt.
+There is no daily cron job and no download on dates without requests.
+
+The workflow downloads the schedule, current public catalog details, and seat
+allocations, validates them, then builds and deploys Pages. The app keeps the last
+published data usable while it works and offers a reload link after success.
+This requires backend/account setup and changing Pages to **GitHub Actions**;
+it is disabled until `refresh-config.json` contains the deployed service URL.
+See the [deployment and validation guide](refresh-service/README.md) for setup,
+credentials, source-completeness guards, and failure handling.
+
+Run the snapshot and builder regression tests from the project directory:
+
+```bash
+python -m unittest discover -s tests -v
+node --test tests/corrigendum.test.js
+node --test refresh-service/worker.test.js
+```
+
+The Node.js tests cover baseline validation, comparison ordering, lab changes, file-loading races, and print-event rendering and cleanup using a lightweight DOM harness. Check final pagination and the print dialog in a real browser before publishing.
+
 ---
 
 ## 📜 Credits & Maintenance
