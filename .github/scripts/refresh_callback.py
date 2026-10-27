@@ -18,6 +18,7 @@ request = Request(
     headers={
         'Authorization': 'Bearer ' + os.environ['REFRESH_CALLBACK_SECRET'],
         'Content-Type': 'application/json',
+        'User-Agent': 'Hamilton-Catalog-Refresh',
     },
     method='POST',
 )

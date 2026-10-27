@@ -116,6 +116,9 @@ No live upstream calls occur in unit tests.
 
 ## Validation
 
+Workflow callbacks identify themselves as `Hamilton-Catalog-Refresh`; Cloudflare
+may reject Python's default urllib user agent before requests reach the Worker.
+
 From the repository root:
 
 ```sh
