@@ -1,0 +1,17 @@
+{
+  "name": "hamilton-catalog-refresh",
+  "main": "worker.js",
+  "compatibility_date": "2026-10-01",
+  "vars": {
+    "ALLOWED_ORIGIN": "https://crgibbons.github.io",
+    "GITHUB_REPOSITORY": "crgibbons/Colleague_self_service",
+    "GITHUB_REF": "main",
+    "GITHUB_WORKFLOW": "refresh-catalog.yml"
+  },
+  "durable_objects": {
+    "bindings": [{ "name": "REFRESH_GATE", "class_name": "RefreshGate" }]
+  },
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["RefreshGate"] }
+  ]
+}

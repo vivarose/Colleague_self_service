@@ -114,11 +114,29 @@ Section identity currently uses term, subject, course number, and normalized sec
 
 The builder creates immutable `catalog-snapshots/<snapshot-id>.json` archives and a `catalog-snapshots/latest.json` pointer, and embeds the current snapshot in `courses.html` so the page can compare baselines even when opened locally. Publish the generated page and snapshot archive together. There is no automatic archive pruning; archives are integrity-checked and never overwritten if a snapshot ID already exists. Invalid identities, empty catalogs, or corrupt archives fail the build before replacing the published page.
 
+### On-demand daily source refresh
+
+The optional [refresh service](refresh-service/README.md) checks for updates when
+someone opens the app. A shared Cloudflare Durable Object dispatches GitHub
+Actions only for the first request on a date in **fixed EST (UTC-05:00)**. After
+success, later visits do not download source data again that date. Failed
+attempts can be retried; simultaneous visitors share the pending attempt.
+There is no daily cron job and no download on dates without requests.
+
+The workflow downloads the schedule, current public catalog details, and seat
+allocations, validates them, then builds and deploys Pages. The app keeps the last
+published data usable while it works and offers a reload link after success.
+This requires backend/account setup and changing Pages to **GitHub Actions**;
+it is disabled until `refresh-config.json` contains the deployed service URL.
+See the [deployment and validation guide](refresh-service/README.md) for setup,
+credentials, source-completeness guards, and failure handling.
+
 Run the snapshot and builder regression tests from the project directory:
 
 ```bash
 python -m unittest discover -s tests -v
 node --test tests/corrigendum.test.js
+node --test refresh-service/worker.test.js
 ```
 
 The Node.js tests cover baseline validation, comparison ordering, lab changes, file-loading races, and print-event rendering and cleanup using a lightweight DOM harness. Check final pagination and the print dialog in a real browser before publishing.

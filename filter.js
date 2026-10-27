@@ -652,6 +652,56 @@ function printCorrigendum() {
 
 let printMode = 'booklet';
 
+async function requestDailyRefresh() {
+  const status = document.getElementById('refreshStatus');
+  if (!status || location.protocol === 'file:') return;
+  try {
+    const configResponse = await fetch(new URL('refresh-config.json', location.href), { cache: 'no-store' });
+    if (!configResponse.ok) throw new Error(`Refresh configuration HTTP ${configResponse.status}`);
+    const config = await configResponse.json();
+    if (!config.service_url) {
+      status.textContent = 'Daily refresh is not configured; showing the published catalog.';
+      return;
+    }
+    const service = new URL(config.service_url);
+    if (service.protocol !== 'https:') throw new Error('Refresh service must use HTTPS.');
+    let path = '/refresh';
+    for (let attempt = 0; attempt < 120; attempt++) {
+      const response = await fetch(new URL(path, service), {
+        method: path === '/refresh' ? 'POST' : 'GET', cache: 'no-store'
+      });
+      if (!response.ok) throw new Error(`Refresh service HTTP ${response.status}`);
+      const result = await response.json();
+      if (result.status === 'succeeded') {
+        const metadata = JSON.parse(document.getElementById('catalogMetadata').textContent);
+        status.textContent = `Catalog refreshed for ${result.date} (fixed EST). `;
+        if (metadata.refresh_date !== result.date) {
+          const link = document.createElement('a');
+          const updated = new URL(location.href);
+          updated.searchParams.set('refresh', Date.now().toString());
+          link.href = updated.href;
+          link.textContent = 'Reload to use the refreshed catalog (resets filters).';
+          status.appendChild(link);
+        }
+        return;
+      }
+      if (result.status === 'failed') {
+        throw new Error(result.message || 'The refresh workflow failed; a later visit may retry.');
+      }
+      if (!['pending', 'not_requested'].includes(result.status)) {
+        throw new Error('Refresh service returned an unknown status.');
+      }
+      status.textContent = 'Catalog refresh queued or running; showing the last published data.';
+      path = result.status === 'not_requested' ? '/refresh' : '/status';
+      await new Promise(resolve => setTimeout(resolve, 15_000));
+    }
+    throw new Error('Refresh is still pending. Reopen the app later to check its status.');
+  } catch (error) {
+    status.textContent = `Daily refresh unavailable: ${error.message} Showing the last published data.`;
+    console.error('Daily catalog refresh:', error);
+  }
+}
+
 if (typeof window !== 'undefined') {
   window.addEventListener('beforeprint', () => {
     if (printMode === 'corrigendum') prepareCorrigendumBooklet();
@@ -663,6 +713,7 @@ if (typeof window !== 'undefined') {
   });
 
   window.addEventListener('DOMContentLoaded', () => {
+    requestDailyRefresh();
     updateVisitCount();
     document.getElementById('searchInput')?.addEventListener('input', filterCourses);
     document.getElementById('classYearFilter')?.addEventListener('change', filterCourses);

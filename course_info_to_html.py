@@ -303,7 +303,9 @@ def display_course_info(data, mode='html'):
             if is_valid(sec) and sec != 'nan':
                 code_sec += f"-{sec.zfill(2) if sec.isdigit() else sec}"
 
-            raw_title = row.get('Course Name') or row.get('TITLE')
+            raw_title = row.get('Course Name')
+            if not is_valid(raw_title):
+                raw_title = row.get('TITLE')
             title = clean_title(raw_title)
             full_title = f'{code_sec}: {title}' if title else code_sec
             
@@ -504,6 +506,8 @@ if __name__ == '__main__':
             df = pd.read_excel(excel_file)
             print(f'Loaded {len(df)} course rows from {excel_file}.')
             snapshot = build_snapshot(df.where(pd.notna(df), None).to_dict('records'), CATALOG_TERM, CATALOG_TERM_LABEL)
+            provenance_path = BASE_DIR / 'source-provenance.json'
+            provenance = json.loads(provenance_path.read_text()) if provenance_path.exists() else {}
             metadata = {
                 'schema_version': snapshot['schema_version'],
                 'term': snapshot['term'],
@@ -513,7 +517,8 @@ if __name__ == '__main__':
                 'snapshot_path': f"catalog-snapshots/{snapshot['snapshot_id']}.json",
                 'source_file_sha256': sha256(excel_file.read_bytes()).hexdigest(),
                 'source_updated_at': None,
-                'source_retrieved_at': None,
+                'source_retrieved_at': provenance.get('source_retrieved_at'),
+                'refresh_date': provenance.get('refresh_date'),
                 'identity_issues': snapshot['identity_issues'],
             }
             

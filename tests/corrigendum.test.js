@@ -167,3 +167,46 @@ test('a slower file read cannot replace a newer comparison', async () => {
   assert.equal(elements.get('printCorrigendumButton').hidden, true);
   assert.match(elements.get('corrigendumStatus').textContent, /Could not compare/);
 });
+
+test('daily refresh makes one trigger request, polls status, and offers a reload', async () => {
+  const file = baselineFile();
+  const { context, elements } = browserHarness(file.snapshot);
+  const status = { textContent: '', children: [], appendChild(child) { this.children.push(child); } };
+  const originalGet = context.document.getElementById;
+  context.document.getElementById = id => id === 'refreshStatus' ? status : originalGet(id);
+  context.location = new URL('https://crgibbons.github.io/Colleague_self_service/courses.html');
+  context.URL = URL;
+  const requests = [];
+  context.fetch = async (url, options) => {
+    requests.push({ url: String(url), method: options.method });
+    const body = requests.length === 1 ? { service_url: 'https://refresh.example' } :
+      requests.length === 2 ? { status: 'pending', date: '2026-10-27' } :
+        { status: 'succeeded', date: '2026-10-27' };
+    return { ok: true, json: async () => body };
+  };
+  await context.requestDailyRefresh();
+  assert.equal(requests.filter(request => request.method === 'POST').length, 1);
+  assert.equal(requests[2].method, 'GET');
+  assert.equal(new URL(requests[2].url).pathname, '/status');
+  assert.match(status.textContent, /Catalog refreshed/);
+  assert.match(status.children[0].href, /refresh=/);
+  assert.equal(elements.get('courseBooklet').children.length, 0);
+});
+
+test('daily refresh failures explicitly retain the published data without looping retries', async () => {
+  const { context } = browserHarness(baselineFile().snapshot);
+  const status = { textContent: '' };
+  const originalGet = context.document.getElementById;
+  context.document.getElementById = id => id === 'refreshStatus' ? status : originalGet(id);
+  context.location = new URL('https://crgibbons.github.io/Colleague_self_service/courses.html');
+  context.URL = URL;
+  let requests = 0;
+  context.fetch = async () => ({
+    ok: true,
+    json: async () => ++requests === 1 ? { service_url: 'https://refresh.example' } :
+      { status: 'failed', message: 'Source validation failed.' }
+  });
+  await context.requestDailyRefresh();
+  assert.equal(requests, 2);
+  assert.match(status.textContent, /Source validation failed.*last published data/);
+});
