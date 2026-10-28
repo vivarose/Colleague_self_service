@@ -74,6 +74,7 @@ jobs:
         run: |
           mkdir public
           cp courses.html refresh-config.json public/
+          cp courses.html public/index.html
           cp -r catalog-snapshots public/
       - uses: actions/configure-pages@v5
         if: steps.claim.outputs.proceed == 'true'
