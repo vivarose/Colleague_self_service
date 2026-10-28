@@ -422,29 +422,79 @@ function recordLabel(record) {
   return `${subject} ${number}${section}${title ? `: ${title}` : ''}`.trim();
 }
 
-function appendCorrigendumEntry(container, heading, description, fields) {
-  const entry = document.createElement('section');
-  entry.className = 'corrigendum-entry';
-  const title = document.createElement('h3');
-  title.textContent = heading;
-  entry.appendChild(title);
-  const note = document.createElement('p');
-  note.textContent = description;
-  entry.appendChild(note);
-  if (fields.length) {
-    const table = document.createElement('table');
-    fields.forEach(([label, before, after], index) => {
-      const row = document.createElement('tr');
-      [label, before, after].forEach(value => {
-        const cell = document.createElement(index === 0 ? 'th' : 'td');
-        cell.textContent = value;
-        row.appendChild(cell);
-      });
-      table.appendChild(row);
-    });
-    entry.appendChild(table);
-  }
-  container.appendChild(entry);
+const CORRIGENDUM_FIELD_LABELS = {
+  MAXCAP: 'Seat cap', 'Sec Capacity': 'Section capacity', 'Fr Cap': 'First-year cap',
+  'So Cap': 'Sophomore cap', 'Jr Cap': 'Junior cap', 'Sr Cap': 'Senior cap',
+  'Course Name': 'Name', TITLE: 'Title', Active: 'Active', Distribution: 'Distribution',
+  Prerequisites: 'Prerequisites', Corequisites: 'Corequisites', COMMENTS: 'Comments',
+  CREDIT: 'Credit', TEACHINGMETHOD: 'Teaching method', RESTRICTED: 'Restricted',
+  'Writing-intensive': 'Writing-intensive',
+};
+const CORRIGENDUM_IGNORED_FIELDS = new Set(['Course Description']);
+const CORRIGENDUM_LONG_FIELDS = new Set(['Notes', 'Prerequisite Narrative',
+  'Corequisite Narrative', 'Credit Hours Narrative', 'Cross Listed Courses Narrative']);
+
+function corrigendumFieldLabel(field) {
+  if (CORRIGENDUM_FIELD_LABELS[field]) return CORRIGENDUM_FIELD_LABELS[field];
+  let match = /^DAY(\d)$/.exec(field);
+  if (match) return `Meeting ${match[1]} days`;
+  match = /^TIME(\d)-(start|end)$/.exec(field);
+  if (match) return `Meeting ${match[1]} ${match[2]}`;
+  match = /^ROOM(\d)$/.exec(field);
+  if (match) return `Meeting ${match[1]} room`;
+  match = /^INSTRUCTOR(\d)$/.exec(field);
+  if (match) return `Instructor ${match[1]}`;
+  return field;
+}
+
+function corrigendumValue(value) {
+  const text = String(value ?? '').trim();
+  if (!text) return '(blank)';
+  return text.length > 60 ? `${text.slice(0, 57)}...` : text;
+}
+
+function describeCorrigendumChange(change) {
+  const oldRow = change.before.variants[0];
+  const newRow = change.current.variants[0];
+  return [...new Set([...Object.keys(oldRow), ...Object.keys(newRow)])]
+    .sort()
+    .filter(field => oldRow[field] !== newRow[field] && !CORRIGENDUM_IGNORED_FIELDS.has(field))
+    .map(field => CORRIGENDUM_LONG_FIELDS.has(field)
+      ? `${corrigendumFieldLabel(field)} updated`
+      : `${corrigendumFieldLabel(field)}: ${corrigendumValue(oldRow[field])} \u2192 ${corrigendumValue(newRow[field])}`)
+    .join('; ');
+}
+
+function plainDescription(html) {
+  const text = String(html ?? '').replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'")
+    .replace(/\s+/g, ' ').trim();
+  return text;
+}
+
+function appendCorrigendumList(container, heading, items) {
+  if (!items.length) return;
+  const section = document.createElement('section');
+  section.className = 'corrigendum-section';
+  const title = document.createElement('h2');
+  title.textContent = `${heading} (${items.length})`;
+  section.appendChild(title);
+  const list = document.createElement('ul');
+  items.forEach(entry => {
+    const { text, detail } = typeof entry === 'string' ? { text: entry } : entry;
+    const item = document.createElement('li');
+    item.textContent = text;
+    if (detail) {
+      const description = document.createElement('div');
+      description.className = 'corrigendum-description';
+      description.textContent = detail;
+      item.appendChild(description);
+    }
+    list.appendChild(item);
+  });
+  section.appendChild(list);
+  container.appendChild(section);
 }
 
 function prepareCorrigendumBooklet() {
@@ -457,49 +507,28 @@ function prepareCorrigendumBooklet() {
   const provenance = document.createElement('p');
   provenance.className = 'booklet-provenance';
   provenance.textContent = `Baseline snapshot: ${baseline.snapshot_id} (${baseline.created_at}); current snapshot: ${current.snapshot_id} (${current.generated_at}).`;
+  const changedEntries = changes.changed
+    .map(change => ({ change, summary: describeCorrigendumChange(change) }))
+    .filter(entry => entry.summary);
   const summary = document.createElement('p');
-  summary.textContent = `${changes.changed.length} changed, ${changes.removed.length} removed from your selection, ${changes.added.length} new catalog section${changes.added.length === 1 ? '' : 's'}, ${changes.ambiguous.length} ambiguous, ${changes.unchanged} unchanged.`;
+  summary.textContent = `${changes.removed.length} removed from your selection, ${changes.added.length} new catalog section${changes.added.length === 1 ? '' : 's'}, ${changedEntries.length} changed, ${changes.ambiguous.length} needing manual review, ${changes.unchanged} unchanged.`;
   const disclaimer = document.createElement('p');
   disclaimer.className = 'booklet-disclaimer';
-  disclaimer.textContent = 'Unofficial catalog comparison. Ambiguous section identities require manual review; verify all changes in Colleague Self-Service.';
+  disclaimer.textContent = 'Unofficial catalog comparison. Verify all changes in Colleague Self-Service.';
   booklet.replaceChildren(heading, provenance, summary, disclaimer);
 
-  changes.changed.forEach(change => {
-    const oldRow = change.before.variants[0];
-    const newRow = change.current.variants[0];
-    const fields = [...new Set([...Object.keys(oldRow), ...Object.keys(newRow)])]
-      .sort()
-      .filter(field => oldRow[field] !== newRow[field])
-      .map(field => [field, oldRow[field] || '(blank)', newRow[field] || '(blank)']);
-    appendCorrigendumEntry(booklet, recordLabel(change.current), 'Changed in the current catalog.', [
-      ['Field', 'Baseline', 'Current'],
-      ...fields,
-    ]);
-  });
-  changes.removed.forEach(change => {
-    appendCorrigendumEntry(
-      booklet, recordLabel(change.record), 'This selected section is absent from the current catalog.', []
-    );
-  });
-  changes.added.forEach(record => {
-    const row = record.variants[0];
-    const fields = Object.keys(row).sort()
-      .filter(field => row[field])
-      .map(field => [field, '', row[field]]);
-    appendCorrigendumEntry(booklet, recordLabel(record), 'New catalog section; it was not present in the baseline.', [
-      ['Field', 'Baseline', 'Current'],
-      ...fields,
-    ]);
-  });
-  changes.ambiguous.forEach(issue => {
-    appendCorrigendumEntry(
-      booklet,
-      recordLabel(issue.record) || issue.id,
-      `Not compared automatically: ${issue.baseline_count} baseline variant(s), ${issue.current_count} current variant(s). Review this section identity manually.`,
-      []
-    );
-  });
-  if (!changes.changed.length && !changes.removed.length && !changes.added.length && !changes.ambiguous.length) {
+  appendCorrigendumList(booklet, 'Removed: no longer in the catalog',
+    changes.removed.map(change => recordLabel(change.record)));
+  appendCorrigendumList(booklet, 'Added: new catalog sections', changes.added.map(record => ({
+    text: recordLabel(record),
+    detail: plainDescription(record.variants[0]['Course Description']),
+  })));
+  appendCorrigendumList(booklet, 'Changed', changedEntries.map(({ change, summary }) =>
+    `${recordLabel(change.current)} \u2014 ${summary}`));
+  appendCorrigendumList(booklet, 'Needs manual review: duplicate section identities',
+    changes.ambiguous.map(issue =>
+      `${recordLabel(issue.record) || issue.id} \u2014 ${issue.baseline_count} baseline variant(s), ${issue.current_count} current variant(s)`));
+  if (!changedEntries.length && !changes.removed.length && !changes.added.length && !changes.ambiguous.length) {
     const noChanges = document.createElement('p');
     noChanges.textContent = 'No changes were found for the saved selection.';
     booklet.appendChild(noChanges);

@@ -139,9 +139,8 @@ test('loading, printing, cleanup, and invalid-file recovery use the correct prin
   assert.match(elements.get('corrigendumStatus').textContent, /1 changed/);
   context.printCorrigendum();
   assert.match(printed[0][0].textContent, /Corrigendum/);
-  const rows = printed[0][4].children[2].children;
-  assert.equal(rows[1].children[1].textContent, 'Biology');
-  assert.equal(rows[1].children[2].textContent, 'Updated Biology');
+  const changed = printed[0][4].children[1].children[0];
+  assert.match(changed.textContent, /BIO 101-1.*Title: Biology \u2192 Updated Biology/);
   assert.equal(elements.get('courseBooklet').children.length, 0);
   events.beforeprint();
   assert.match(elements.get('courseBooklet').children[0].textContent, /Course Booklet/);
@@ -150,6 +149,29 @@ test('loading, printing, cleanup, and invalid-file recovery use the correct prin
   assert.match(elements.get('corrigendumStatus').textContent, /Could not compare/);
   context.printCorrigendum();
   assert.equal(printed.length, 1);
+});
+
+test('corrigendum summarizes removed, added, and changed sections compactly', async () => {
+  const baseline = baselineFile().snapshot;
+  baseline.records[0].variants[0].MAXCAP = '18';
+  baseline.records.push({ id: 'gone', variants: [{ 'Subject Code': 'CHEM', 'Course Number+': '200', Section: '1' }] });
+  const current = structuredClone(baseline);
+  current.records = current.records.filter(record => record.id !== 'gone');
+  current.records[0].variants[0].MAXCAP = '16';
+  current.records[0].variants[0]['Course Description'] = 'Edited description';
+  current.records.push({ id: 'new', variants: [{ 'Subject Code': 'ART', 'Course Number+': '110', Section: '2', 'Course Description': '<p>Paint &amp; draw.</p>' }] });
+  const file = baselineFile();
+  file.snapshot = baseline;
+  file.selected_record_ids = ['lecture', 'gone'];
+  const { context, elements } = browserHarness(current);
+  await context.loadBookletBaseline({ files: [{ text: async () => JSON.stringify(file) }], value: '' });
+  const sections = elements.get('courseBooklet').children.slice(4);
+  const text = sections.map(section => section.children[0].textContent + '|' +
+    section.children[1].children.map(item => item.textContent +
+      (item.children[0]?.textContent || '')).join('|'));
+  assert.match(text[0], /^Removed.*\(1\)\|CHEM 200-1/);
+  assert.match(text[1], /^Added.*\(1\)\|ART 110-2Paint & draw\.$/);
+  assert.match(text[2], /^Changed \(1\)\|BIO 101-1.*Seat cap: 18 \u2192 16$/);
 });
 
 test('a slower file read cannot replace a newer comparison', async () => {
