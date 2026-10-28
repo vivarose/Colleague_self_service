@@ -3,7 +3,7 @@ Code to help me use Colleague_self_service
 
 # Hamilton Course Catalogue Explorer
 
-[vivarose.github.io/Colleague_self_service/courses.html](https://vivarose.github.io/Colleague_self_service/courses.html)
+[crgibbons.github.io/Colleague_self_service/](https://crgibbons.github.io/Colleague_self_service/)
 
 An interactive web tool and Python pipeline for compiling, formatting, and exploring Hamilton College course schedules with course descriptions, prerequisites, and registration restrictions.
 
@@ -126,6 +126,8 @@ There is no daily cron job and no download on dates without requests.
 The workflow downloads the schedule, current public catalog details, and seat
 allocations, validates them, then builds and deploys Pages. The app keeps the last
 published data usable while it works and offers a reload link after success.
+The Pages artifact includes the generated catalog as both `index.html` and
+`courses.html`, so the site root and existing course-page links both work.
 This requires backend/account setup and changing Pages to **GitHub Actions**;
 it is disabled until `refresh-config.json` contains the deployed service URL.
 See the [deployment and validation guide](refresh-service/README.md) for setup,
@@ -145,5 +147,6 @@ The Node.js tests cover baseline validation, comparison ordering, lab changes, f
 
 ## 📜 Credits & Maintenance
 
+- **Updater:** Courtney Gibbons (Department of Mathematics and Statistics, Hamilton College) with GitHub copilot 
 - **Author:** Viva R. Horowitz (Department of Physics, Hamilton College) with Google Gemini
 - **Inspiration:** Prof. Courtney Gibbons

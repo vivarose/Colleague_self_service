@@ -82,7 +82,7 @@ and a current-date request is made.
 The workflow persists the spreadsheet, page, provenance, and immutable snapshots
 to the configured branch before deploying Pages. A successful date is recorded
 only after deployment. A deployment failure may therefore leave a newer data
-commit without a successful publication; a later request can retry that date.
+commit without a successful publication; a later request ca retry that date.
 
 ## Source validation
 
