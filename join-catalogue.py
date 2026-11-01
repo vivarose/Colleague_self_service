@@ -19,6 +19,7 @@ Instructions:
 import re
 import pandas as pd
 import os
+import numpy as np
 import warnings
 warnings.filterwarnings('ignore', category=UserWarning, module='openpyxl')
 
@@ -31,6 +32,88 @@ courses_df = pd.read_csv('courseExport.csv')
 # 2. Convert 'Course Number' in catalog to string for safe joining
 courses_df['Course Number'] = courses_df['Course Number'].astype(str).str.strip()
 courses_df['Subject Code'] = courses_df['Subject Code'].astype(str).str.strip()
+
+
+# Ensure 'Subject Name' column exists on final_df
+
+SUBJECT_MAP = {
+    'AFRST': 'Africana Studies',
+    'AIIS': 'American Indian and Indigenous Studies',
+    'AMST': 'American Studies',
+    'ANTHR': 'Anthropology',
+    'ARABC': 'Arabic',
+    'ARCH': 'Archaeology',
+    'ART': 'Art',
+    'ARTH': 'Art History',
+    'ASNST': 'Asian Studies',
+    'BICHM': 'Biochemistry/Molecular Biology',
+    'BIO': 'Biology',
+    'CHEM': 'Chemistry',
+    'CHNSE': 'Chinese',
+    'CLASC': 'Classical Studies',
+    'CLNG': 'Critical Languages',
+    'CNMS': 'Cinema and Media Studies',
+    'COLEG': 'College Courses and Seminars',
+    'CPSCI': 'Computer Science',
+    'CRWR': 'Creative Writing',
+    'DANCE': 'Dance and Movement Studies',
+    'DARTS': 'Digital Arts',
+    'ECON': 'Economics',
+    'EDUC': 'Education Studies',
+    'ENVST': 'Environmental Studies',
+    'FRNCH': 'French and Francophone Studies',
+    'GEOSC': 'Geosciences',
+    'GERMN': 'German Studies',
+    'GOVT': 'Government',
+    'GREEK': 'Greek',
+    'HIST': 'History',
+    'HSPST': 'Hispanic Studies',
+    'ITALN': 'Italian',
+    'JAPN': 'Japanese',
+    'JLJS': 'Jurisprudence, Law, and Justice Studies',
+    'JWST': 'Jewish Studies',
+    'LATIN': 'Latin',
+    'LIT': 'Literature',
+    'LTAM': 'Latin American Studies',
+    'MATH': 'Mathematics and Statistics',
+    'MDRST': 'Medieval and Renaissance Studies',
+    'MEIWS': 'Middle East and Islamic World Studies',
+    'MUSIC': 'Music',
+    'NEURO': 'Neuroscience',
+    'PHIL': 'Philosophy',
+    'PHYS': 'Physics',
+    'PPOL': 'Public Policy',
+    'PSYCH': 'Psychology',
+    'RELST': 'Religious Studies',
+    'RSNST': 'Russian Studies',
+    'RUSSN': 'Russian Language',
+    'SOC': 'Sociology',
+    'THETR': 'Theatre',
+    'WMGST': "Women's and Gender Studies",
+}
+
+if 'Subject Name' not in courses_df.columns:
+    courses_df['Subject Name'] = np.nan
+
+courses_df = courses_df.rename(columns={'Subject Name': 'Subject Name+'})
+
+# Ensure Subject Code is clean string
+courses_df['Subject Code'] = (
+    courses_df['Subject Code'].astype(str).str.strip().str.upper()
+)
+
+# 1. Map known subject names using SUBJECT_MAP
+mapped_names = courses_df['Subject Code'].map(SUBJECT_MAP)
+
+# 2. Fill missing or NaN Subject Name values
+if 'Subject Name' in courses_df.columns:
+    courses_df['Subject Name'] = courses_df['Subject Name'].fillna(mapped_names)
+else:
+    courses_df['Subject Name'] = mapped_names
+    
+## Set Subject Name+ (which is the same as Subject Name except for Music.)
+courses_df['Subject Name+'] = courses_df['Subject Name+'].replace(r'^\s*$', np.nan, regex=True)
+courses_df['Subject Name+'] = courses_df['Subject Name+'].fillna(courses_df['Subject Name'])    
 
 #%% Clean up courses_df
 courses_df = courses_df.rename(columns={'Instructor': 'Usual instructor'})
@@ -127,14 +210,38 @@ import requests
 import pandas as pd
 from pypdf import PdfReader
 
-# 1. Download the PDF directly from the Hamilton website
 url = "https://www.hamilton.edu/offices/registrar/registration/class-year-seats"
-headers = {"User-Agent": "Mozilla/5.0"}
-response = requests.get(url, headers=headers)
-response.raise_for_status()
+headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+local_pdf_path = "class_year_seats.pdf"
+
+pdf_bytes = None
+
+# 1. Try to download the PDF, otherwise fall back to local file
+try:
+    print("Attempting to download latest seat data PDF...")
+    response = requests.get(url, headers=headers, timeout=10)
+    response.raise_for_status()
+
+    # Store in memory and update local cache for future offline runs
+    pdf_bytes = response.content
+    with open(local_pdf_path, "wb") as f:
+        f.write(pdf_bytes)
+    print("Download successful. Updated local PDF cache.")
+
+except Exception as e:
+    print(f"⚠️ Warning: Download failed ({e}). Attempting to use local fallback...")
+
+    if os.path.exists(local_pdf_path):
+        with open(local_pdf_path, "rb") as f:
+            pdf_bytes = f.read()
+        print(f"Loaded existing cached PDF: '{local_pdf_path}'")
+    else:
+        raise FileNotFoundError(
+            f"Unable to download PDF and no local file '{local_pdf_path}' was found."
+        ) from e
 
 # 2. Extract text from the PDF pages
-pdf_file = io.BytesIO(response.content)
+pdf_file = io.BytesIO(pdf_bytes)
 reader = PdfReader(pdf_file)
 
 pdf_text = ""
@@ -191,6 +298,7 @@ final_df = merged_df.merge(
     on=['Subject Code', 'Course Number', 'Section'],
     how='left'
 )
+
 
 #%% Determine Class Year Eligibility with Compact Audit Output
 
