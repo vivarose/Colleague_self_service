@@ -297,6 +297,27 @@ function getVisibleBookletCards() {
   );
 }
 
+function printCourseBooklet() {
+  prepareCourseBooklet();
+  window.print();
+}
+
+window.addEventListener('beforeprint', prepareCourseBooklet);
+window.addEventListener('afterprint', () => document.getElementById('courseBooklet')?.replaceChildren());
+
+// Attach Event Listeners on DOM Load
+window.addEventListener('DOMContentLoaded', () => {
+  updateVisitCount();
+  document.getElementById('searchInput')?.addEventListener('input', filterCourses);
+  document.getElementById('classYearFilter')?.addEventListener('change', filterCourses);
+  document.getElementById('deptFilter')?.addEventListener('change', filterCourses);
+  document.getElementById('levelFilter')?.addEventListener('change', filterCourses);
+  document.getElementById('timeBeforeSelect')?.addEventListener('change', filterCourses);
+  document.getElementById('timeAfterSelect')?.addEventListener('change', filterCourses);
+  document.getElementById('wiOnly')?.addEventListener('change', filterCourses);
+  document.getElementById('noPrereqOnly')?.addEventListener('change', filterCourses);
+});
+
 function getCurrentCatalogSnapshot() {
   const element = document.getElementById('catalogSnapshot');
   if (!element) throw new Error('The current catalog snapshot is missing from this page.');

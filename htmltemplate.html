@@ -444,7 +444,7 @@
 		  </div>
       <div class="header-actions">
 			<button class="shuffle-btn" onclick="shuffleCourses()" title="Randomize course display order">🔀 Shuffle</button>
-      <button type="button" class="shuffle-btn" onclick="printCourseBooklet()" title="Print selected courses grouped by department">Print Booklet</button>
+      <button type="button" class="shuffle-btn" onclick="printCourseBooklet()" title="Print selected courses grouped by department">🖨️ Print Booklet</button>
       <button type="button" class="shuffle-btn" onclick="saveBookletBaseline()" title="Download the selected courses and their catalog baseline">Save Booklet Baseline</button>
       <button type="button" class="shuffle-btn" onclick="document.getElementById('baselineFile').click()" title="Compare a saved booklet baseline with this catalog">Compare Baseline</button>
       <button type="button" class="shuffle-btn" id="printCorrigendumButton" onclick="printCorrigendum()" hidden>Print Corrigendum</button>
@@ -576,14 +576,13 @@
      <span class="counter-badge" id="visitCounter">Visits: --</span>
      
    </div>
-   <div>Hamilton Course Schedule Explorer</div>
+   <div>Unofficial Hamilton Course Schedule Explorer</div>
  </footer>
 
  <article id="courseBooklet" aria-label="Filtered course booklet"></article>
 
- <script type="application/json" id="catalogMetadata">{{CATALOG_METADATA_PLACEHOLDER}}</script>
+<script type="application/json" id="catalogMetadata">{{CATALOG_METADATA_PLACEHOLDER}}</script>
  <script type="application/json" id="catalogSnapshot">{{CATALOG_SNAPSHOT_PLACEHOLDER}}</script>
-
  <script>
    {{FILTER_JS_PLACEHOLDER}}
  </script>
