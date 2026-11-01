@@ -3,9 +3,6 @@ __pycache__/
 *.py[codz]
 *$py.class
 
-# User added
-*.pdf
-
 # C extensions
 *.so
 
