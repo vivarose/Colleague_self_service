@@ -103,6 +103,11 @@ unmatched = merged_df[merged_df['_merge'] == 'left_only'][
     ['Subject Code', 'Course Number', 'COURSE_NO']
 ].drop_duplicates()
 
+# Filter out lab sections (course numbers containing 'L')
+unmatched = unmatched[
+    ~unmatched['Course Number'].astype(str).str.contains('L', case=False, na=False)
+]
+
 if not unmatched.empty:
     print(
         f"\n⚠️ WARNING: {len(unmatched)} course(s) in the schedule were not found in the course catalog:"
