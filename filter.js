@@ -725,7 +725,7 @@ async function requestDailyRefresh() {
     if (!configResponse.ok) throw new Error(`Refresh configuration HTTP ${configResponse.status}`);
     const config = await configResponse.json();
     if (!config.service_url) {
-      status.textContent = 'Daily refresh is not configured; showing the published catalog.';
+      status.textContent = 'Not guaranteed to be up-to-date. (No refresh configured.)';
       return;
     }
     const service = new URL(config.service_url);
@@ -762,7 +762,7 @@ async function requestDailyRefresh() {
     }
     throw new Error('Refresh is still pending. Reopen the app later to check its status.');
   } catch (error) {
-    status.textContent = `Daily refresh unavailable: ${error.message} Showing the last published data.`;
+    status.textContent = `Not guaranteed to be up-to-date. Check email for latest changes.`;
     console.error('Daily catalog refresh:', error);
   }
 }
