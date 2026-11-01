@@ -167,6 +167,7 @@ def determine_class_year_eligibility(row):
     Ignores exclusion rules that target specific majors/concentrators (e.g., "Not open to Sr ECON concentrators")
     so general students in that class year remain marked as 'ok'.
     """
+
     year_cap_map = {
         '1st-years': row.get('Fr Cap'),
         '2nd-years': row.get('So Cap'),
@@ -196,6 +197,12 @@ def determine_class_year_eligibility(row):
     # If all explicit caps were found in PDF data, return immediately
     if has_explicit_caps and len(status) == 4:
         return pd.Series(status)
+
+    
+    # Check title rule (e.g., "Senior Thesis", "Senior Seminar", "Senior Project")
+    raw_title = str(row.get('Course Name') or row.get('TITLE') or row.get('Title') or '')
+    if re.search(r'\bseniors?\b', raw_title, re.IGNORECASE):
+        return pd.Series({'1st-years': 'No', '2nd-years': 'No', '3rd-years': 'No', '4th-years': 'ok'})
 
     # Step 2: Fall back to text parsing
     text_fields = {
@@ -312,7 +319,7 @@ def determine_class_year_eligibility(row):
         interpretation = ", ".join([f"{v}" for k, v in text_status.items()])
         snippet_display = matched_snippet if matched_snippet else combined_text
         
-        print(f"🔍{course_id}", f"   \"{snippet_display}\"", f"   {interpretation}\n")
+        print(f"🔍{course_id}", f"    \"{snippet_display}\"", f"    {interpretation}\n")
 
     return pd.Series(text_status)
 
