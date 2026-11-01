@@ -22,6 +22,7 @@ CATALOG_TERM_LABEL_SHORT = "Spr '27"
 
 TEACHING_METHODS = {
     'LEC': None,
+    'LEC,Final Exam': None,
     'SEM': 'Seminar',
     'LAB': 'Laboratory',
     'IND': 'Independent Study',
@@ -345,9 +346,14 @@ def display_course_info(data, mode='html'):
             else:
                 title_html = full_title
 
+                
             sub_items = []
+            subj_name_plus = row.get('Subject Name+')
             subj_name = row.get('Subject Name')
-            if is_valid(subj_name):
+
+            if is_valid(subj_name_plus):
+                sub_items.append(str(subj_name_plus).strip())
+            elif is_valid(subj_name):
                 sub_items.append(str(subj_name).strip())
             elif is_valid(subj):
                 sub_items.append(subj)

@@ -17,6 +17,7 @@ Instructions:
 """
 #%pip install openpyxl
 import re
+import numpy as np
 import pandas as pd
 import os
 import warnings
@@ -31,6 +32,16 @@ courses_df = pd.read_csv('courseExport.csv')
 # 2. Convert 'Course Number' in catalog to string for safe joining
 courses_df['Course Number'] = courses_df['Course Number'].astype(str).str.strip()
 courses_df['Subject Code'] = courses_df['Subject Code'].astype(str).str.strip()
+
+
+# Ensure 'Subject Name' column exists on final_df
+if 'Subject Name' not in courses_df.columns:
+    courses_df['Subject Name'] = np.nan
+
+courses_df = courses_df.rename(columns={'Subject Name': 'Subject Name+'})
+courses_df['Subject Name'] = np.where(
+    courses_df['Subject Code'] == 'MUSIC', 'Music', courses_df['Subject Name+']
+)
 
 #%% Clean up courses_df
 courses_df = courses_df.rename(columns={'Instructor': 'Usual instructor'})
@@ -161,6 +172,31 @@ if 'Section' not in merged_df.columns:
     merged_df['Section'] = merged_df['COURSE_NO'].astype(str).str.extract(r'(\d+)\s*$')[0].str.strip()
 
 final_df = merge_allocations(merged_df, seats_df)
+
+#%% Fix missing subject names
+# 1. Convert empty strings or whitespace-only cells to NaN
+final_df['Subject Name'] = final_df['Subject Name'].replace(r'^\s*$', np.nan, regex=True)
+
+# 2. Fill missing Subject Name values using the known name for each Subject Code
+final_df['Subject Name'] = final_df['Subject Name'].fillna(
+    final_df.groupby('Subject Code')['Subject Name'].transform('first')
+)
+
+
+# Mask rows where Subject Code is 'CLNG' and Subject Name is NaN, empty, or whitespace
+mask = (final_df['Subject Code'] == 'CLNG') & (
+    final_df['Subject Name'].isna() | (final_df['Subject Name'].astype(str).str.strip() == '')
+)
+
+# Assign 'Critical Languages' to matching rows
+final_df.loc[mask, 'Subject Name'] = 'Critical Languages'
+
+## Set Subject Name+ (which is the same as Subject Name except for Music.)
+# 1. Convert empty strings or whitespace-only cells in 'Subject Name+' to NaN
+final_df['Subject Name+'] = final_df['Subject Name+'].replace(r'^\s*$', np.nan, regex=True)
+
+# 2. Fill missing 'Subject Name+' values with the corresponding 'Subject Name'
+final_df['Subject Name+'] = final_df['Subject Name+'].fillna(final_df['Subject Name'])
 
 #%% Determine Class Year Eligibility with Compact Audit Output
 
