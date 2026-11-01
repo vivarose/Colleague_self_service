@@ -3,7 +3,7 @@ Code to help me use Colleague_self_service
 
 # Hamilton Course Catalogue Explorer
 
-[crgibbons.github.io/Colleague_self_service/](https://crgibbons.github.io/Colleague_self_service/)
+[vivarose.github.io/Colleague_self_service/courses.html](https://vivarose.github.io/Colleague_self_service/courses.html)
 
 An interactive web tool and Python pipeline for compiling, formatting, and exploring Hamilton College course schedules with course descriptions, prerequisites, and registration restrictions.
 
@@ -85,22 +85,21 @@ pip install pandas openpyxl
 
 ### Running the Builder
 
-1. Ensure `merged_course_schedule.xlsx`, `htmltemplate.html`, and `filter.js` are in the same directory as `course_info_to_html.py`.
-2. Run the build script:
+1. Run the build script:
    ```bash
-   python course_info_to_html.py
+   python refresh_catalogue.py --date YYYY-MM-DD
    ```
-3. Open `courses.html` in any modern web browser.
+2. Open `courses.html` in any modern web browser.
 
-The builder resolves input files relative to its own directory and writes `courses.html` there. You can run it from another working directory by supplying the path to `course_info_to_html.py`.
+The builder resolves input files relative to its own directory and writes `courses.html` there. 
 
-### Printing a Course Booklet
+### Printing
 
-Apply filters and hide any unwanted courses, then select **Print Booklet** or use your browser's Print command. The booklet contains only the currently visible courses, grouped by department and sorted by course number and section. Printing does not change the on-screen course order.
+Apply filters and hide any unwanted courses, then select **Print** or use your browser's Print command. The booklet contains only the currently visible courses, grouped by department and sorted by course number and section. Printing does not change the on-screen course order.
 
 The booklet includes the active filters, full course details, descriptions, and required lab sections. Choose a printer or **Save as PDF** in the print dialog. For folded booklets, use your printer or PDF viewer's booklet setting; the page itself produces sequential pages, not imposed sheets. Pagination and optional browser headers and footers depend on your print settings.
 
-### Booklet Corrigenda
+### Corrigenda (Changes after printing)
 
 Each booklet prints its preparation date/time and time zone, catalog build time, and a content-addressed snapshot ID. Build time is not the source's update time: the current spreadsheet supplies no verified retrieval/update timestamp, so these remain unknown rather than being inferred from file modification time.
 

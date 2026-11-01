@@ -17,6 +17,8 @@ from catalogue_snapshot import build_snapshot, canonical_json, publish_snapshot,
 BASE_DIR = Path(__file__).resolve().parent
 CATALOG_TERM = '2027-spring'
 CATALOG_TERM_LABEL = 'Spring 2027'
+CATALOG_TERM_LABEL_SHORT = "Spr '27"
+
 
 TEACHING_METHODS = {
     'LEC': None,
@@ -567,7 +569,7 @@ if __name__ == '__main__':
             ).replace(
                 '{{CATALOG_SNAPSHOT_PLACEHOLDER}}', canonical_json(snapshot).replace('<', '\\u003c')
             ).replace(
-                '{{CATALOG_TERM_LABEL_PLACEHOLDER}}', html.escape(CATALOG_TERM_LABEL)
+                '{{CATALOG_TERM_LABEL_PLACEHOLDER}}', html.escape(CATALOG_TERM_LABEL_SHORT)
             )
 
             publish_snapshot(snapshot, BASE_DIR / 'catalog-snapshots')

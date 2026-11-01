@@ -439,23 +439,19 @@
    <div class="filter-panel" id="filterPanel">
 		<div class="filter-header">
 		  <div class="filter-title-group" onclick="toggleFilterPanel()" title="Click to collapse/expand filters">
-      <h2>🔍 {{CATALOG_TERM_LABEL_PLACEHOLDER}} Course Filters</h2>
+            <h2>🔍 {{CATALOG_TERM_LABEL_PLACEHOLDER}} Course Filters</h2>
 			<button class="header-toggle-btn" id="headerToggleBtn">▲ Hide</button>
 		  </div>
-      <div class="header-actions">
+          <div class="header-actions">
 			<button class="shuffle-btn" onclick="shuffleCourses()" title="Randomize course display order">🔀 Shuffle</button>
-      <button type="button" class="shuffle-btn" onclick="printCourseBooklet()" title="Print selected courses grouped by department">🖨️ Print Booklet</button>
-      <button type="button" class="shuffle-btn" onclick="saveBookletBaseline()" title="Download the selected courses and their catalog baseline">Save Booklet Baseline</button>
-      <button type="button" class="shuffle-btn" onclick="document.getElementById('baselineFile').click()" title="Compare a saved booklet baseline with this catalog">Compare Baseline</button>
-      <button type="button" class="shuffle-btn" id="printCorrigendumButton" onclick="printCorrigendum()" hidden>Print Corrigendum</button>
-      <input type="file" id="baselineFile" accept="application/json,.json" hidden onchange="loadBookletBaseline(this)">
+            <button type="button" class="shuffle-btn" onclick="printCourseBooklet()" title="Print selected courses grouped by department">🖨️ Print</button>
 			<span class="counter-badge" id="courseCounter">Loading...</span>
 		  </div>
 		</div>
-    <p id="refreshStatus" role="status" aria-live="polite"></p>
-    <p id="corrigendumStatus" role="status" aria-live="polite"></p>
      
      <div id="filterBody">
+       <p id="refreshStatus" role="status" aria-live="polite"></p>
+
        <div class="filter-grid">
          <div class="filter-group">
            <label>Search Keyword</label>
@@ -555,11 +551,23 @@
          <div class="busy-list" id="busyList"></div>
        </details>
 
+       <!-- FOLDABLE MORE / PRINT CHANGES SECTION -->
+       <details class="conflict-details">
+         <summary class="conflict-summary">🛠️ Print Changes</summary>
+         <div class="add-block-row" style="margin-top: 10px; margin-bottom: 8px;">
+           <button type="button" class="shuffle-btn" onclick="saveBookletBaseline()" title="Download the selected courses and their catalog baseline">Save Booklet Baseline</button>
+           <button type="button" class="shuffle-btn" onclick="document.getElementById('baselineFile').click()" title="Compare a saved booklet baseline with this catalog">Compare Baseline</button>
+           <button type="button" class="shuffle-btn" id="printCorrigendumButton" onclick="printCorrigendum()" hidden>Print Corrigendum</button>
+           <input type="file" id="baselineFile" accept="application/json,.json" hidden onchange="loadBookletBaseline(this)">
+         </div>
+         <p id="corrigendumStatus" role="status" aria-live="polite"></p>
+       </details>
+
        <button class="reset-btn" onclick="resetFilters()">Reset All Filters</button>
      </div>
 
      <div class="panel-toggle-bar" id="toggleBar" onclick="toggleFilterPanel()" title="Click to collapse/expand filters">
-       <span id="toggleText">Hide Filters</span> <span id="panelCaret">▲</span>
+       <span id="toggleText">Hide</span> <span id="panelCaret">▲</span>
      </div>
    </div>
 
@@ -568,6 +576,7 @@
      {{FULL_TEXT_PLACEHOLDER}}
    </div>
  </div>
+
 
  <!-- Footer & Visit Counter Container -->
  <footer style="text-align: center; margin-top: 40px; padding: 20px 0 30px 0; border-top: 1px solid #d0d7de; font-size: 12px; color: #57606a;">
