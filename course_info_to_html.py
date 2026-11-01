@@ -34,8 +34,64 @@ TEACHING_METHODS = {
     'WKS': 'Workshop',
 }
 
-def build_dept_options(df):
-    """Extracts unique subject codes and names and builds HTML <option> tags."""
+SUBJECT_MAP = {
+    'AFRST': 'Africana Studies',
+    'AIIS': 'American Indian and Indigenous Studies',
+    'AMST': 'American Studies',
+    'ANTHR': 'Anthropology',
+    'ARABC': 'Arabic',
+    'ARCH': 'Archaeology',
+    'ART': 'Art',
+    'ARTH': 'Art History',
+    'ASNST': 'Asian Studies',
+    'BICHM': 'Biochemistry/Molecular Biology',
+    'BIO': 'Biology',
+    'CHEM': 'Chemistry',
+    'CHNSE': 'Chinese',
+    'CLASC': 'Classical Studies',
+    'CNMS': 'Cinema and Media Studies',
+    'COLEG': 'College Courses and Seminars',
+    'CPSCI': 'Computer Science',
+    'CRWR': 'Creative Writing',
+    'DANCE': 'Dance and Movement Studies',
+    'DARTS': 'Digital Arts',
+    'ECON': 'Economics',
+    'EDUC': 'Education Studies',
+    'ENVST': 'Environmental Studies',
+    'FRNCH': 'French and Francophone Studies',
+    'GEOSC': 'Geosciences',
+    'GERMN': 'German Studies',
+    'GOVT': 'Government',
+    'GREEK': 'Greek',
+    'HIST': 'History',
+    'HSPST': 'Hispanic Studies',
+    'ITALN': 'Italian',
+    'JAPN': 'Japanese',
+    'JLJS': 'Jurisprudence, Law, and Justice Studies',
+    'JWST': 'Jewish Studies',
+    'LATIN': 'Latin',
+    'LIT': 'Literature',
+    'LTAM': 'Latin American Studies',
+    'MATH': 'Mathematics and Statistics',
+    'MDRST': 'Medieval and Renaissance Studies',
+    'MEIWS': 'Middle East and Islamic World Studies',
+    'MUSIC': 'Music',
+    'NEURO': 'Neuroscience',
+    'PHIL': 'Philosophy',
+    'PHYS': 'Physics',
+    'PPOL': 'Public Policy',
+    'PSYCH': 'Psychology',
+    'RELST': 'Religious Studies',
+    'RSNST': 'Russian Studies',
+    'RUSSN': 'Russian Language',
+    'SOC': 'Sociology',
+    'THETR': 'Theatre',
+    'WMGST': "Women's and Gender Studies",
+}
+
+
+def build_dept_options(df, SUBJECT_MAP=SUBJECT_MAP):
+    """Extracts unique subject codes, resolves names via dictionary, and builds HTML <option> tags."""
     if 'Subject Code' in df.columns:
         code_col = 'Subject Code'
         name_col = 'Subject Name' if 'Subject Name' in df.columns else None
@@ -45,13 +101,24 @@ def build_dept_options(df):
     else:
         return '<option value="all">All Departments</option>'
 
-    subset = df[[code_col] + ([name_col] if name_col else [])].dropna().drop_duplicates()
-    subset = subset.sort_values(by=code_col)
+    # Get sorted unique subject codes present in the dataframe
+    unique_codes = sorted(df[code_col].dropna().unique())
 
     options = ['<option value="all">All Departments</option>']
-    for _, row in subset.iterrows():
-        code = str(row[code_col]).strip()
-        name = str(row[name_col]).strip() if name_col and pd.notna(row[name_col]) else code
+    for raw_code in unique_codes:
+        code = str(raw_code).strip()
+        if not code:
+            continue
+
+        # Lookup in dictionary, falling back to DataFrame's Subject Name or the code itself
+        if code in SUBJECT_MAP:
+            name = SUBJECT_MAP[code]
+        elif name_col:
+            matching_rows = df[df[code_col] == raw_code][name_col].dropna()
+            name = str(matching_rows.iloc[0]).strip() if not matching_rows.empty else code
+        else:
+            name = code
+
         options.append(f'<option value="{code}">{code} — {name}</option>')
     
     return '\n'.join(options)
@@ -321,7 +388,6 @@ def display_course_info(data, mode='html'):
             else:
                 has_prereq = 'true' if prereq_display else 'false'
 
-
             subj = str(row.get('Subject Code', '')).strip()
             num_plus = str(
                 row.get('Course Number+', row.get('Course Number', ''))
@@ -346,15 +412,23 @@ def display_course_info(data, mode='html'):
             else:
                 title_html = full_title
 
-                
-            sub_items = []
+            sub_items = [] # set up subheader, starting with subject name
             subj_name_plus = row.get('Subject Name+')
             subj_name = row.get('Subject Name')
-
+            
+            # 1st Attempt: Subject Name+ (e.g. specific catalog/override name)
             if is_valid(subj_name_plus):
                 sub_items.append(str(subj_name_plus).strip())
+            
+            # 2nd Attempt: Dictionary Map lookup using Subject Code
+            elif is_valid(SUBJECT_MAP.get(subj)):
+                sub_items.append(SUBJECT_MAP[subj].strip())
+            
+            # 3rd Attempt: General Subject Name from catalog
             elif is_valid(subj_name):
                 sub_items.append(str(subj_name).strip())
+            
+            # 4th Attempt: Raw Subject Code (e.g. 'AFRST', 'BIO')
             elif is_valid(subj):
                 sub_items.append(subj)
 
