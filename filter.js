@@ -146,6 +146,10 @@ function filterCourses() {
   const deptEl = document.getElementById('deptFilter');
   const selectedDept = deptEl ? deptEl.value : 'all';
 
+  // Safe fetch for course level dropdown value
+  const levelEl = document.getElementById('levelFilter');
+  const selectedLevel = levelEl ? levelEl.value : 'all';
+
   const cards = document.querySelectorAll('.course-card');
   let visibleCount = 0;
 
@@ -162,6 +166,14 @@ function filterCourses() {
     if (show && selectedDept !== 'all') {
       const cardDept = card.getAttribute('data-subject');
       if (cardDept !== selectedDept) {
+        show = false;
+      }
+    }
+
+    // Filter by course level (100, 200, 300, 400, 500)
+    if (show && selectedLevel !== 'all') {
+      const cardLevel = card.getAttribute('data-level');
+      if (cardLevel !== selectedLevel) {
         show = false;
       }
     }
@@ -255,6 +267,9 @@ function filterCourses() {
 function resetFilters() {
   // Reset text and dropdown inputs
   document.getElementById('deptFilter').value = 'all';
+  const levelEl = document.getElementById('levelFilter');
+  if (levelEl) levelEl.value = 'all';
+
   document.getElementById('searchInput').value = '';
   document.getElementById('classYearFilter').value = 'all';
   document.getElementById('timeBeforeSelect').value = '';
@@ -598,11 +613,11 @@ function prepareCourseBooklet() {
   const query = document.getElementById('searchInput').value.trim();
   if (query) filters.push(`Keyword: ${query}`);
   for (const [identifier, label] of [
-    ['deptFilter', 'Department'], ['classYearFilter', 'Class year'],
+    ['deptFilter', 'Department'], ['levelFilter', 'Course level'], ['classYearFilter', 'Class year'],
     ['timeBeforeSelect', 'Starts at or after'], ['timeAfterSelect', 'Ends at or before']
   ]) {
     const select = document.getElementById(identifier);
-    if (select.value && select.value !== 'all') {
+    if (select && select.value && select.value !== 'all') {
       filters.push(`${label}: ${select.selectedOptions[0].textContent}`);
     }
   }
@@ -747,6 +762,7 @@ if (typeof window !== 'undefined') {
     document.getElementById('searchInput')?.addEventListener('input', filterCourses);
     document.getElementById('classYearFilter')?.addEventListener('change', filterCourses);
     document.getElementById('deptFilter')?.addEventListener('change', filterCourses);
+    document.getElementById('levelFilter')?.addEventListener('change', filterCourses);
     document.getElementById('timeBeforeSelect')?.addEventListener('change', filterCourses);
     document.getElementById('timeAfterSelect')?.addEventListener('change', filterCourses);
     document.getElementById('wiOnly')?.addEventListener('change', filterCourses);

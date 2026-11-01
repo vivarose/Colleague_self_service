@@ -203,6 +203,10 @@ def determine_class_year_eligibility(row):
     if has_explicit_caps and len(status) == 4:
         return pd.Series(status)
 
+    # 500-Level Course Rule (Senior-only courses: 500–599)
+    course_num = str(row.get('Course Number+') or row.get('Course Number') or row.get('COURSE') or '').strip()
+    if re.search(r'\b5\d{2}\b', course_num):
+        return pd.Series({'1st-years': 'No', '2nd-years': 'No', '3rd-years': 'No', '4th-years': 'ok'})
     
     # Check title rule (e.g., "Senior Thesis", "Senior Seminar", "Senior Project")
     raw_title = str(row.get('Course Name') or row.get('TITLE') or row.get('Title') or '')

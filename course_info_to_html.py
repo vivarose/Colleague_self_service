@@ -235,6 +235,16 @@ def group_courses_and_labs(rows):
 
     return parents, labs_by_key
 
+def get_course_level(course_num):
+    """Extracts the first digit of the course number to determine level (e.g., '146W' -> '100')."""
+    if not is_valid(course_num):
+        return ''
+    match = re.search(r'\d', str(course_num))
+    if match:
+        first_digit = match.group(0)
+        return f'{first_digit}00'
+    return ''
+
 def display_course_info(data, mode='html'):
     """Displays formatted course details for DataFrame or list of rows."""
     if isinstance(data, pd.DataFrame):
@@ -289,14 +299,31 @@ def display_course_info(data, mode='html'):
                 else 'false'
             )
 
+            ## Prerequisite check.
             prereq = row.get('Prerequisite Narrative') or row.get('Prerequisites')
             prereq_display = str(prereq).strip() if is_valid(prereq) else None
-            has_prereq = 'true' if prereq_display else 'false'
+
+            # Check Course Description for implicit prerequisite wording (e.g., "Prerequisite, 113 or placement by the department")
+            desc_text = str(row.get('Course Description', ''))
+            desc_prereq_match = re.search(
+                r'Prerequisite,?\s+.*?\s+or\s+placement\s+by\s+the\s+department',
+                desc_text,
+                re.IGNORECASE,
+            )
+
+            if desc_prereq_match:
+                has_prereq = 'true'
+                if not prereq_display:
+                    prereq_display = desc_prereq_match.group(0).strip()
+            else:
+                has_prereq = 'true' if prereq_display else 'false'
+
 
             subj = str(row.get('Subject Code', '')).strip()
             num_plus = str(
                 row.get('Course Number+', row.get('Course Number', ''))
             ).strip()
+            course_level = get_course_level(num_plus)
             sec = str(row.get('Section', '')).strip()
 
             code_sec = f'{subj} {num_plus}'
@@ -388,7 +415,7 @@ def display_course_info(data, mode='html'):
             ## BUILD THE CARD!
             card = [
                 (
-                    f'<div class="course-card" data-subject="{subj}"'
+                    f'<div class="course-card" data-subject="{subj}" data-level="{course_level}"'
                     f' data-record-ids="{record_ids_attribute}"'
                     f' data-days="{days_str}" data-start-min="{min_start}"'
                     f' data-end-min="{max_end}" data-wi="{is_wi}"'
