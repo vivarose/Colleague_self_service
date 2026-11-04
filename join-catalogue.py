@@ -372,6 +372,21 @@ def determine_class_year_eligibility(row):
 year_cols = ['1st-years', '2nd-years', '3rd-years', '4th-years']
 final_df[year_cols] = final_df.apply(determine_class_year_eligibility, axis=1)
 
+#%% Merge in URLs
+
+if 'Catalogue URL' not in final_df.columns:
+    url_df = pd.read_csv('URL_list.csv')
+    
+    # Deduplicate keys in url_df to prevent expanding final_df's row count
+    url_df = url_df.drop_duplicates(subset=['Subject Code', 'Course Number+'])
+    
+    # Perform a left join to preserve all original rows in final_df
+    final_df = final_df.merge(
+        url_df, 
+        on=['Subject Code', 'Course Number+'], 
+        how='left'
+    )
+
 #%% Re-order the output and save
 # 1. Specify the desired leading columns
 first_cols = ['Subject Code', 'Course Number+', 'Section', 
