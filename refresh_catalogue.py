@@ -241,8 +241,10 @@ def refresh(output, refresh_date):
 
 
 if __name__ == '__main__':
+    from datetime import date
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--date', required=True, help='Fixed-EST request date, YYYY-MM-DD')
+    parser.add_argument('--date', default = date.today().isoformat(), 
+                        help='Fixed-EST request date, YYYY-MM-DD')
     parser.add_argument('--output', type=Path, default=ROOT)
     args = parser.parse_args()
     refresh(args.output.resolve(), args.date)
