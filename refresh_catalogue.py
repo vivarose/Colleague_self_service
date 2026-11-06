@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Download and validate all public sources before replacing the published catalog."""
 
 import argparse
@@ -220,6 +221,12 @@ def refresh(output, refresh_date):
         (staging / 'seats.pdf').write_bytes(pdf)
         environment = {**os.environ, 'CATALOG_INPUT_DIR': str(staging),
                        'CATALOG_SEATS_FILE': str(staging / 'seats.pdf')}
+
+        if (ROOT / 'catalogue-history').exists():
+            shutil.copytree(ROOT / 'catalogue-history', staging / 'catalogue-history', dirs_exist_ok=True)
+        if (ROOT / 'URL_list.csv').exists():
+            shutil.copy2(ROOT / 'URL_list.csv', staging / 'URL_list.csv')
+
         subprocess.run([sys.executable, str(ROOT / 'join-catalogue.py')], env=environment, check=True)
         merged = pd.read_pickle(staging / 'merged_course_schedule.pkl')
         if len(merged) != len(schedule):
