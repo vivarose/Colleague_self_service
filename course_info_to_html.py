@@ -11,6 +11,8 @@ from hashlib import sha256
 from pathlib import Path
 import re
 import pandas as pd
+import os
+import warnings
 
 from catalogue_snapshot import build_snapshot, canonical_json, publish_snapshot, record_id
 
@@ -23,6 +25,7 @@ CATALOG_TERM_LABEL_SHORT = "Spr '27"
 TEACHING_METHODS = {
     'LEC': None,
     'LEC,Final Exam': None,
+    'LEC Final Exam': None,
     'SEM': 'Seminar',
     'LAB': 'Laboratory',
     'IND': 'Independent Study',
@@ -32,6 +35,7 @@ TEACHING_METHODS = {
     'PRAC': 'Practicum',
     'DISC': 'Discussion',
     'WKS': 'Workshop',
+    'STUDIO': 'Studio'
 }
 
 SUBJECT_MAP = {
@@ -59,10 +63,12 @@ SUBJECT_MAP = {
     'EDUC': 'Education Studies',
     'ENVST': 'Environmental Studies',
     'FRNCH': 'French and Francophone Studies',
+    'GEARC' : 'Geoarchaeology',
     'GEOSC': 'Geosciences',
     'GERMN': 'German Studies',
     'GOVT': 'Government',
     'GREEK': 'Greek',
+    'HEBRW': 'Hebrew',
     'HIST': 'History',
     'HSPST': 'Hispanic Studies',
     'ITALN': 'Italian',
@@ -315,6 +321,77 @@ def get_course_level(course_num):
         return f'{first_digit}00'
     return ''
 
+
+#%% Describe historical availability
+
+
+def build_historical_html(row):
+    """Generates HTML for the single-term prior historical snapshot section."""
+    # Check if course was offered or has history data
+    hist_offered = row.get('Offered_Last_Year')
+    if hist_offered is None:
+        return None
+
+    hist_term = row.get('Hist_Term_Label', 'Spring 2026')
+
+    # Status when course was not offered in the prior term
+    if hist_offered is False or str(hist_offered).strip().lower() in ['false', 'no', '0', 'not offered']:
+        return f'''<div><span style="color: #6e7781;">Was not offered in {hist_term}</span></div>'''
+
+    # Extract metrics safely from dataframe row
+    fill_rate = row.get('Hist_Fill_Rate')
+    enrolled = row.get('Hist_Total_Enrollment',0)
+    capacity = row.get('Hist_Seats_Offered',0) 
+    sections = row.get('Hist_Sections_Offered',0)
+    waitlist = row.get('Hist_Total_Waitlist')
+    open_seats = row.get('Hist_Open_Seats')
+
+    # Return fallback if no metrics are present
+    if fill_rate is None and enrolled is None and capacity is None:
+        if is_valid(hist_offered):
+            return f'''<div style="margin-top: 12px; padding: 8px 12px; background-color: #f6f8fa; border: 1px solid #e1e4e8; border-radius: 6px; font-size: 12px; color: #57606a;">
+    📊 <b>{hist_term} History:</b> <span style="color: #6e7781;">Not offered in {hist_term}</span>
+  </div>'''
+        return None
+
+    # Format values
+    fill_str = f"{clean_num(fill_rate*100)}%" if is_valid(fill_rate) else ""
+    counts_str = f" ({clean_num(enrolled)} / {clean_num(capacity)} seats)" if is_valid(enrolled) and is_valid(capacity) else ""
+    fill_display = f"{fill_str}{counts_str}".strip() or "N/A"
+
+    sections_display = clean_num(sections) if is_valid(sections) else "1"
+    waitlist_display = f"{clean_num(waitlist)} student(s)" if is_valid(waitlist) else "0 students"
+    open_seats_display = f"{clean_num(open_seats)} remaining" if is_valid(open_seats) else "0 remaining"
+
+    hist_info_html = \
+        f'''<div style="margin-top: 12px; padding: 10px 14px; background-color: #f6f8fa; border: 1px solid #e1e4e8; border-radius: 6px;">
+            <div style="font-size: 11px; font-weight: 700; color: #57606a; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; display: flex; justify-content: space-between;">
+              <span>📊 Prior Term Snapshot ({hist_term} Data)</span>
+              <span style="font-weight: 400; text-transform: none; color: #6e7781;">Single-term baseline</span>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; font-size: 12px; color: #24292f;">
+              <dive>
+              <div><b>Fill Rate:</b> {fill_display}</div>
+              <div><b>Sections Offered:</b> {sections_display}</div>
+              <div><b>Waitlist:</b> {waitlist_display}</div>
+              <div><b>Open Seats:</b> {open_seats_display}</div>
+            </div>
+          </div>'''
+
+    hist_info_html = \
+        f'''<p style="font-size: 12px; color: #57606a; margin: 8px 0;">
+        <b>📊 Prior Term ({hist_term}):</b> 
+        Fill Rate: <b style="color: #24292f;">{fill_display}</b> &bull; 
+        Sections: <b style="color: #24292f;">{sections_display}</b> &bull; 
+        Waitlist: <b style="color: #24292f;">{waitlist_display}</b> &bull; 
+        Open Seats: <b style="color: #24292f;">{open_seats_display}</b>
+        </p>'''
+
+    return hist_info_html
+  
+  
+
+#%% Build html!
 def display_course_info(data, mode='html'):
     """Displays formatted course details for DataFrame or list of rows."""
     if isinstance(data, pd.DataFrame):
@@ -493,7 +570,7 @@ def display_course_info(data, mode='html'):
             cross_display = str(cross_list).strip().strip(',') if is_valid(cross_list) else None
 
             comments_display = clean_comments_notes(row.get('COMMENTS'), row.get('Notes'))
-            
+                 
             ## BUILD THE CARD!
             card = [
                 (
@@ -528,6 +605,7 @@ def display_course_info(data, mode='html'):
                 f'   <div>👤 <b>Instructor:</b> {instructor_display}</div>',
                 f'   <div>👥 <b>Capacity:</b> {capacity_display}</div>',
             ])
+            
 
             if cross_display:
                 card.append(f'   <div>🔀 <b>Cross-listed:</b> {cross_display}</div>')
@@ -537,6 +615,10 @@ def display_course_info(data, mode='html'):
 
             if comments_display:
                 card.append(f'   <div>💬 <b>Comments:</b> {comments_display}</div>')
+
+            hist_info_html = build_historical_html(row)
+            if is_valid(hist_info_html):
+                card.append(f'{hist_info_html}')
 
             card.append(' </div>')
 
@@ -599,24 +681,41 @@ def load_file_content(filename):
         return f.read()
 
 
+
+
 if __name__ == '__main__':
     excel_file = BASE_DIR / 'merged_course_schedule.xlsx'
     html_template_file = 'htmltemplate.html'
     js_file = 'filter.js'
 
     if not excel_file.exists():
-        print(f"Error: Could not find '{excel_file}'. Run join-catalogue.py first.")
+        print(f"❌ Error: Could not find '{excel_file}'. Run join-catalogue.py first.")
         raise SystemExit(1)
     else:
         try:
+            print("📂 Loading HTML template and JavaScript files...")
             template_text = load_file_content(html_template_file)
             js_text = load_file_content(js_file)
-
+    
+            print(f"📊 Reading dataset from '{excel_file.name}'...")
             df = pd.read_excel(excel_file)
-            print(f'Loaded {len(df)} course rows from {excel_file}.')
-            snapshot = build_snapshot(df.where(pd.notna(df), None).to_dict('records'), CATALOG_TERM, CATALOG_TERM_LABEL)
+            print(f"✅ Loaded {len(df)} course rows.")
+    
+            print("📸 Generating catalog snapshot structure...")
+            snapshot = build_snapshot(
+                df.where(pd.notna(df), None).to_dict('records'), 
+                CATALOG_TERM, 
+                CATALOG_TERM_LABEL
+            )
+    
             provenance_path = BASE_DIR / 'source-provenance.json'
-            provenance = json.loads(provenance_path.read_text()) if provenance_path.exists() else {}
+            if provenance_path.exists():
+                print("📜 Reading source provenance metadata...")
+                provenance = json.loads(provenance_path.read_text())
+            else:
+                print("⚠️  No 'source-provenance.json' found. Proceeding with defaults.")
+                provenance = {}
+    
             metadata = {
                 'schema_version': snapshot['schema_version'],
                 'term': snapshot['term'],
@@ -630,43 +729,46 @@ if __name__ == '__main__':
                 'refresh_date': provenance.get('refresh_date'),
                 'identity_issues': snapshot['identity_issues'],
             }
-            
+    
             # 1. Generate course card HTML string
+            print("🎨 [1/3] Generating course HTML cards...")
             full_course_html = display_course_info(df)
-            
+    
             # 2. Build department dropdown options string
+            print("🏢 [2/3] Building department dropdown menu options...")
             dept_options = build_dept_options(df)
-
+    
             # 3. Replace all placeholders on template_text
-            final_html = template_text.replace(
-                '{{FULL_TEXT_PLACEHOLDER}}', full_course_html
-            ).replace(
-                '{{FILTER_JS_PLACEHOLDER}}', js_text
-            ).replace(
-                '{{DEPT_OPTIONS_PLACEHOLDER}}', dept_options
-            ).replace(
-                '{{CATALOG_METADATA_PLACEHOLDER}}', canonical_json(metadata).replace('<', '\\u003c')
-            ).replace(
-                '{{CATALOG_SNAPSHOT_PLACEHOLDER}}', canonical_json(snapshot).replace('<', '\\u003c')
-            ).replace(
-                '{{CATALOG_TERM_LABEL_PLACEHOLDER}}', html.escape(CATALOG_TERM_LABEL_SHORT)
+            print("🧱 [3/3] Injecting cards, JavaScript, and metadata into HTML template...")
+            final_html = (
+                template_text.replace('{{FULL_TEXT_PLACEHOLDER}}', full_course_html)
+                .replace('{{FILTER_JS_PLACEHOLDER}}', js_text)
+                .replace('{{DEPT_OPTIONS_PLACEHOLDER}}', dept_options)
+                .replace('{{CATALOG_METADATA_PLACEHOLDER}}', canonical_json(metadata).replace('<', '\\u003c'))
+                .replace('{{CATALOG_SNAPSHOT_PLACEHOLDER}}', canonical_json(snapshot).replace('<', '\\u003c'))
+                .replace('{{CATALOG_TERM_LABEL_PLACEHOLDER}}', html.escape(CATALOG_TERM_LABEL_SHORT))
             )
-
+    
+            print("💾 Publishing catalog snapshot to snapshot folder...")
             publish_snapshot(snapshot, BASE_DIR / 'catalog-snapshots')
+    
+            print("📝 Writing output file to 'courses.html'...")
             output_path = BASE_DIR / 'courses.html'
             temporary_output = output_path.with_suffix('.html.tmp')
             with open(temporary_output, 'w', encoding='utf-8') as f:
                 f.write(final_html)
             temporary_output.replace(output_path)
+    
+            print("🏷️  Updating 'latest.json' metadata reference...")
             latest_path = BASE_DIR / 'catalog-snapshots' / 'latest.json'
             temporary_latest = latest_path.with_suffix('.json.tmp')
             temporary_latest.write_text(canonical_json(metadata) + '\n', encoding='utf-8')
             temporary_latest.replace(latest_path)
-
+    
             print('🎉 Saved courses.html successfully using htmltemplate.html and filter.js!')
             if snapshot['identity_issues']:
-                print(f"Warning: {len(snapshot['identity_issues'])} ambiguous section identities retained in snapshot.")
-
+                print(f"⚠️  Warning: {len(snapshot['identity_issues'])} ambiguous section identities retained in snapshot.")
+    
         except Exception as e:
-            print(f"Error building courses.html: {e}")
+            print(f"❌ Error building courses.html: {e}")
             raise SystemExit(1) from e

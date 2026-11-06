@@ -387,6 +387,90 @@ if 'Catalogue URL' not in final_df.columns:
         how='left'
     )
 
+#%% Load historical seat availability
+
+def load_prior_year_availability(
+        csv_path=os.path.join("catalogue-history", 
+                              "Hamilton_Courses_All_Pages_2026-spring.csv"),
+        check_for_anomalies = True):
+    """
+    Parses Spring 2026 CSV and returns a dictionary mapping course section/base keys
+    to historical enrollment stats.
+    """
+    df_history = pd.read_csv(csv_path)
+    
+    ## Parse the availability data
+    # Define the new column names in order
+    newcols = ['Open seats', 'Enrollment', 'Seats offered', 'Waitlist']
+    
+    # Split by '/' surrounded by optional whitespace, parse to numeric, and assign
+    df_history[newcols] = (
+        df_history['Availability']
+        .str.split(r'\s*/\s*', expand=True)
+        .apply(pd.to_numeric, errors='coerce')
+        .astype('Int64')  # Keeps integer formatting while allowing NaN/missing values
+    )
+    
+    if check_for_anomalies: # Check for anomalies in enrollment
+        df = df_history.copy()
+        open_col, enr_col, cap_col, _ = newcols
+
+        if all(c in df.columns for c in [cap_col, enr_col, open_col]):
+            df['Calculated_Capacity'] = df[open_col] + df[enr_col]
+            df['Seat_Difference'] = df['Calculated_Capacity'] - df[cap_col]
+            
+            # Anomaly condition: absolute difference greater than zero
+            anomalies = df[df['Seat_Difference'] != 0].copy()
+
+            if anomalies.empty:
+                print("✅ Open seats plus enrollment equals seats offered across all courses.")
+            else:
+                print(f"⚠️ Found {len(anomalies)} seat count anomalies:\n")
+                
+                # Columns to print for easy reading
+                cols_to_print = [c for c in ['Subject Code', 'Course Number', 'Section', cap_col, enr_col, open_col, 'Calculated_Capacity', 'Seat_Difference'] if c in df.columns]
+                print(anomalies[cols_to_print].to_string(index=False))
+    
+    # pars subject and course number
+    df_history[['Subject Code', 'Course Number+', 'Section']] = (
+        df_history['Section Name'].str.extract(r'^([A-Za-z]+)-([0-9]+[A-Za-z]*)-([A-Za-z0-9]+)')
+)
+    return df_history
+
+course_keys = ['Subject Code', 'Course Number+']
+df_hist = load_prior_year_availability()
+# Aggregate historical data by course
+hist_summary = (
+    df_hist.groupby(course_keys)
+    .agg(
+        Hist_Sections_Offered=('Section', 'nunique'),
+        Hist_Seats_Offered=('Seats offered', 'sum'),
+        Hist_Total_Enrollment=('Enrollment', 'sum'),
+        Hist_Total_Waitlist=('Waitlist', 'sum'),
+        Hist_Open_Seats=('Open seats', 'sum'),
+    )
+    .reset_index()
+)
+
+# 3. Derive meaningful historical metrics
+hist_summary['Hist_Fill_Rate'] = (
+    hist_summary['Hist_Total_Enrollment'] / hist_summary['Hist_Seats_Offered']
+).round(2)
+
+hist_summary['Hist_Avg_Section_Enrollment'] = (
+    hist_summary['Hist_Total_Enrollment']
+    / hist_summary['Hist_Sections_Offered']
+).round(1)
+
+# 4. Merge aggregated history onto current offerings
+final_df = pd.merge(final_df, hist_summary, on=course_keys, how='left')
+
+final_df['Offered_Last_Year'] = final_df['Hist_Seats_Offered'].notna()
+final_df['Hist_Status'] = final_df['Offered_Last_Year'].map(
+    {True: 'Offered in Spring 2026', False: 'New / Not offered in Spring 2026'}
+)
+
+
 #%% Re-order the output and save
 # 1. Specify the desired leading columns
 first_cols = ['Subject Code', 'Course Number+', 'Section', 
