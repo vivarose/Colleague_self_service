@@ -488,8 +488,10 @@ final_df = final_df[first_cols + remaining_cols]
 #print(final_df.columns[:5].tolist())
 
 # Save the updated merged DataFrame
-final_df.to_excel('merged_course_schedule.xlsx', index=False)
+final_df.to_csv('merged_course_schedule.csv', index=False)
+final_df.to_pickle('merged_course_schedule.pkl')
+
 print(f'Saved merged spreadsheet. Total rows: {len(final_df)}')
 print(os.getcwd())
 
-print(r'merged_course_schedule.xlsx');
+print(r'merged_course_schedule.csv / pkl');

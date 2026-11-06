@@ -200,7 +200,7 @@ def refresh(output, refresh_date):
         raise ValueError('Update source URLs and validation when changing the configured term.')
     sources = []
     schedule = parse_schedule(download(SCHEDULE, sources))
-    previous = pd.read_excel(output / 'merged_course_schedule.xlsx')
+    previous = pd.read_pickle(output / 'merged_course_schedule.pkl')
     previous_count = len(previous.drop_duplicates(['Subject Code', 'Course Number+', 'Section']))
     if len(schedule) < previous_count * 0.9:
         raise ValueError(f'Schedule shrank by over 10% ({previous_count} to {len(schedule)}); manual review required.')
@@ -221,7 +221,7 @@ def refresh(output, refresh_date):
         environment = {**os.environ, 'CATALOG_INPUT_DIR': str(staging),
                        'CATALOG_SEATS_FILE': str(staging / 'seats.pdf')}
         subprocess.run([sys.executable, str(ROOT / 'join-catalogue.py')], env=environment, check=True)
-        merged = pd.read_excel(staging / 'merged_course_schedule.xlsx')
+        merged = pd.read_pickle(staging / 'merged_course_schedule.pkl')
         if len(merged) != len(schedule):
             raise ValueError('Merging sources changed the schedule row count.')
         for name in ('course_info_to_html.py', 'catalogue_snapshot.py', 'htmltemplate.html', 'filter.js'):
@@ -235,7 +235,7 @@ def refresh(output, refresh_date):
         (staging / 'source-provenance.json').write_text(json.dumps(provenance, indent=2) + '\n')
         subprocess.run([sys.executable, str(staging / 'course_info_to_html.py')], check=True)
         # All network, parsing, and build checks finish before published files change.
-        for name in ('merged_course_schedule.xlsx', 'courses.html', 'source-provenance.json'):
+        for name in ('merged_course_schedule.pkl', 'courses.html', 'source-provenance.json'):
             shutil.copy2(staging / name, output / name)
         shutil.copytree(staging / 'catalog-snapshots', output / 'catalog-snapshots', dirs_exist_ok=True)
 

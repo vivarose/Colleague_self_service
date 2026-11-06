@@ -669,12 +669,12 @@ def load_file_content(filename):
 
 
 if __name__ == '__main__':
-    excel_file = BASE_DIR / 'merged_course_schedule.xlsx'
+    df_file = BASE_DIR / 'merged_course_schedule.pkl'
     html_template_file = 'htmltemplate.html'
     js_file = 'filter.js'
 
-    if not excel_file.exists():
-        print(f"❌ Error: Could not find '{excel_file}'. Run join-catalogue.py first.")
+    if not df_file.exists():
+        print(f"❌ Error: Could not find '{df_file}'. Run join-catalogue.py first.")
         raise SystemExit(1)
     else:
         try:
@@ -682,8 +682,8 @@ if __name__ == '__main__':
             template_text = load_file_content(html_template_file)
             js_text = load_file_content(js_file)
     
-            print(f"📊 Reading dataset from '{excel_file.name}'...")
-            df = pd.read_excel(excel_file)
+            print(f"📊 Reading dataset from '{df_file.name}'...")
+            df = pd.read_pickle(df_file)
             print(f"✅ Loaded {len(df)} course rows.")
     
             print("📸 Generating catalog snapshot structure...")
@@ -708,7 +708,7 @@ if __name__ == '__main__':
                 'snapshot_id': snapshot['snapshot_id'],
                 'generated_at': snapshot['generated_at'],
                 'snapshot_path': f"catalog-snapshots/{snapshot['snapshot_id']}.json",
-                'source_file_sha256': sha256(excel_file.read_bytes()).hexdigest(),
+                'source_file_sha256': sha256(df_file.read_bytes()).hexdigest(),
                 'source_updated_at': None,
                 'source_retrieved_at': provenance.get('source_retrieved_at'),
                 'refresh_date': provenance.get('refresh_date'),
