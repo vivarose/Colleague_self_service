@@ -5,7 +5,6 @@ __pycache__/
 
 # User added
 *.pdf
-catalog-snapshots/
 
 # C extensions
 *.so
