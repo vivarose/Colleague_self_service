@@ -364,21 +364,6 @@ def build_historical_html(row):
     open_seats_display = f"{clean_num(open_seats)} remaining" if is_valid(open_seats) else "0 remaining"
 
     hist_info_html = \
-        f'''<div style="margin-top: 12px; padding: 10px 14px; background-color: #f6f8fa; border: 1px solid #e1e4e8; border-radius: 6px;">
-            <div style="font-size: 11px; font-weight: 700; color: #57606a; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; display: flex; justify-content: space-between;">
-              <span>📊 Prior Term Snapshot ({hist_term} Data)</span>
-              <span style="font-weight: 400; text-transform: none; color: #6e7781;">Single-term baseline</span>
-            </div>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; font-size: 12px; color: #24292f;">
-              <dive>
-              <div><b>Fill Rate:</b> {fill_display}</div>
-              <div><b>Sections Offered:</b> {sections_display}</div>
-              <div><b>Waitlist:</b> {waitlist_display}</div>
-              <div><b>Open Seats:</b> {open_seats_display}</div>
-            </div>
-          </div>'''
-
-    hist_info_html = \
         f'''<p style="font-size: 12px; color: #57606a; margin: 8px 0;">
         <b>📊 Prior Term ({hist_term}):</b> 
         Fill Rate: <b style="color: #24292f;">{fill_display}</b> &bull; 
