@@ -5,12 +5,43 @@
  <meta name="viewport" content="width=device-width, initial-scale=1.0">
  <title>Hamilton Course Schedule Explorer</title>
  <style>
+ :root {
+  --bg-color: #f4f6f8;
+  --surface-color: #ffffff;
+  --text-main: #24292f;
+  --text-muted: #57606a;
+  --primary-color: #002f6c;
+  --primary-hover: #001f48;
+  --border-color: #d0d7de;
+  --shadow-color: rgba(0,0,0,0.06);
+  --warning-bg: #fff8c5;
+  --warning-border: #d4a72c;
+  --warning-text: #573600;
+  --btn-bg: #f3f4f6;
+  --btn-hover: #e5e7eb;
+}
+
+[data-theme="dark"] {
+  --bg-color: #0d1117;
+  --surface-color: #161b22;
+  --text-main: #c9d1d9;
+  --text-muted: #8b949e;
+  --primary-color: #58a6ff;
+  --primary-hover: #79c0ff;
+  --border-color: #30363d;
+  --shadow-color: rgba(0,0,0,0.4);
+  --warning-bg: #2d2611;
+  --warning-border: #9e6a03;
+  --warning-text: #e5c07b;
+  --btn-bg: #21262d;
+  --btn-hover: #30363d;
+}
  body {
    font-family: 'Segoe UI', Arial, sans-serif;
-   background-color: #f4f6f8;
+   background-color: var(--bg-color);
    margin: 0;
    padding: 15px 10px;
-   color: #24292f;
+   color: var(--text-main);
  }
  .container {
    max-width: 900px;
@@ -18,14 +49,14 @@
  }
  /* Warning / Disclaimer Banner Style */
  .warning-banner {
-   background-color: #fff8c5;
-   border: 1px solid #d4a72c;
+   background-color: var(--warning-bg);
+   border: 1px solid var(--warning-border);
    border-radius: 8px;
    padding: 12px 16px;
    margin-bottom: 16px;
    font-size: 13px;
    line-height: 1.5;
-   color: #573600;
+   color: var(--warning-text);
    display: flex;
    align-items: center;
    gap: 10px;
@@ -34,12 +65,12 @@
    color: #3b2300;
  }
  .filter-panel {
-   background: #ffffff;
-   border: 1px solid #d0d7de;
+   background: var(--surface-color);
+   border: 1px solid var(--border-color);
    border-radius: 8px;
    padding: 14px 18px 8px 18px;
    margin-bottom: 20px;
-   box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+   box-shadow: 0 4px 12px var(--shadow-color);
    position: sticky;
    top: 10px;
    z-index: 100;
@@ -65,8 +96,8 @@
    color: #002f6c;
  }
  .shuffle-btn {
-  background: #f3f4f6;
-  border: 1px solid #d0d7de;
+  background: var(--btn-bg);
+  border: 1px solid var(--border-color);
   border-radius: 6px;
   padding: 4px 10px;
   font-size: 12px;
@@ -80,7 +111,7 @@
 }
 
 .shuffle-btn:hover {
-  background: #e5e7eb;
+  background: var(--btn-hover);
 }
 
 .shuffle-btn:active {
@@ -90,11 +121,11 @@
 /* Course Card Container */
 .course-card {
   font-family: 'Segoe UI', Arial, sans-serif;
-  border: 1px solid #d0d7de;
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   padding: 18px 20px;
   margin-bottom: 20px;
-  background-color: #ffffff;
+  background-color: var(--surface-color);
   box-shadow: 0 2px 5px rgba(0,0,0,0.05);
 }
 
@@ -118,14 +149,14 @@
 .card-subtitle {
   margin-top: 4px;
   font-size: 13px;
-  color: #57606a;
+  color: var(--text-muted);
   font-weight: 600;
 }
 
 /* Hide Button */
 .btn-hide-course {
   background: none;
-  border: 1px solid #d0d7de;
+  border: 1px solid var(--border-color);
   border-radius: 4px;
   padding: 2px 8px;
   font-size: 12px;
@@ -138,13 +169,13 @@
 .card-details {
   font-size: 14px;
   line-height: 1.8;
-  color: #24292f;
+  color: var(--text-main);
 }
 
 .desc-label {
   font-size: 12px;
   font-weight: 700;
-  color: #57606a;
+  color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-bottom: 4px;
@@ -152,7 +183,7 @@
 
 .desc-body {
   font-size: 14px;
-  color: #24292f;
+  color: var(--text-main);
   line-height: 1.6;
   background-color: #f6f8fa;
   border-left: 4px solid #002f6c;
@@ -166,7 +197,7 @@
   padding: 12px;
   background-color: #f0f4f8;
   border-radius: 6px;
-  border: 1px solid #d0d7de;
+  border: 1px solid var(--border-color);
 }
 
 .lab-title-text {
@@ -177,7 +208,7 @@
 .lab-card {
   margin-top: 8px;
   padding: 10px;
-  background: #ffffff;
+  background: var(--surface-color);
   border-left: 3px solid #002f6c;
   border-radius: 4px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.05);
@@ -186,12 +217,12 @@
 .lab-code {
   font-weight: bold;
   font-size: 13px;
-  color: #24292f;
+  color: var(--text-main);
 }
 
 .lab-details {
   font-size: 12px;
-  color: #57606a;
+  color: var(--text-muted);
   margin-top: 2px;
 }
 
@@ -199,14 +230,14 @@
    font-size: 13px;
    font-weight: 600;
    background-color: #002f6c;
-   color: #ffffff;
+   color: var(--surface-color);
    padding: 4px 10px;
    border-radius: 12px;
    white-space: nowrap;
  }
  .header-toggle-btn {
-   background: #f3f4f6;
-   border: 1px solid #d0d7de;
+   background: var(--btn-bg);
+   border: 1px solid var(--border-color);
    border-radius: 6px;
    padding: 3px 8px;
    font-size: 12px;
@@ -216,7 +247,7 @@
    transition: background 0.2s;
  }
  .header-toggle-btn:hover {
-   background: #e5e7eb;
+   background: var(--btn-hover);
  }
  .filter-grid {
    display: grid;
@@ -233,12 +264,12 @@
  .filter-group label {
    font-size: 11px;
    font-weight: 700;
-   color: #57606a;
+   color: var(--text-muted);
    text-transform: uppercase;
  }
  .filter-group input, .filter-group select {
    padding: 7px 10px;
-   border: 1px solid #d0d7de;
+   border: 1px solid var(--border-color);
    border-radius: 6px;
    font-size: 13px;
    outline: none;
@@ -258,7 +289,7 @@
  .checkbox-group label {
    font-size: 13px;
    font-weight: 600;
-   color: #24292f;
+   color: var(--text-main);
    cursor: pointer;
    display: flex;
    align-items: center;
@@ -267,7 +298,7 @@
  .conflict-details {
    margin-top: 12px;
    padding-top: 10px;
-   border-top: 1px dashed #d0d7de;
+   border-top: 1px dashed var(--border-color);
  }
  .conflict-summary {
    font-size: 13px;
@@ -349,18 +380,18 @@
    grid-column: 1 / -1;
    width: 100%;
    padding: 8px 14px;
-   background-color: #f3f4f6;
-   border: 1px solid #d0d7de;
+   background-color: var(--btn-bg);
+   border: 1px solid var(--border-color);
    border-radius: 6px;
    cursor: pointer;
    font-size: 13px;
    font-weight: 600;
-   color: #24292f;
+   color: var(--text-main);
    transition: background 0.2s;
    margin-top: 10px;
  }
  .reset-btn:hover {
-   background-color: #e5e7eb;
+   background-color: var(--btn-hover);
  }
  .panel-toggle-bar {
    text-align: center;
@@ -688,7 +719,7 @@
 
 
  <!-- Footer & Visit Counter Container -->
- <footer style="text-align: center; margin-top: 40px; padding: 20px 0 30px 0; border-top: 1px solid #d0d7de; font-size: 12px; color: #57606a;">
+ <footer style="text-align: center; margin-top: 40px; padding: 20px 0 30px 0; border-top: 1px solid var(--border-color); font-size: 12px; color: var(--text-muted);">
    <div style="margin-bottom: 8px;">
      
      <span class="counter-badge" id="visitCounter">Visits: --</span>
