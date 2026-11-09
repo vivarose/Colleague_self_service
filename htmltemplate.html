@@ -585,6 +585,7 @@
           <div class="header-actions">
 			<button class="shuffle-btn" onclick="shuffleCourses()" title="Randomize course display order">🔀 Shuffle</button>
             <button type="button" class="shuffle-btn" onclick="printCourseBooklet()" title="Print selected courses grouped by department">🖨️ Print</button>
+			<button class="shuffle-btn" id="themeToggle" title="Toggle Dark Mode">🌙 Dark</button>
 			<span class="counter-badge" id="courseCounter">Loading...</span>
 		  </div>
 		</div>
@@ -735,5 +736,28 @@
  <script>
    {{FILTER_JS_PLACEHOLDER}}
  </script>
+ <script>
+  const themeToggleBtn = document.getElementById('themeToggle');
+  
+  // Check local storage or system preference
+  const currentTheme = localStorage.getItem('theme') || 
+    (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    
+  if (currentTheme === 'dark') {
+    document.documentElement.setAttribute('data-theme', 'dark');
+  }
+
+  // Toggle logic
+  themeToggleBtn.addEventListener('click', () => {
+    let theme = document.documentElement.getAttribute('data-theme');
+    if (theme === 'dark') {
+      document.documentElement.removeAttribute('data-theme');
+      localStorage.setItem('theme', 'light');
+    } else {
+      document.documentElement.setAttribute('data-theme', 'dark');
+      localStorage.setItem('theme', 'dark');
+    }
+  });
+</script>
 </body>
 </html>
