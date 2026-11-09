@@ -566,62 +566,56 @@ def display_course_info(data, mode='html'):
                     f' data-has-prereq="{has_prereq}"'
                     f' data-slots="{slots_json_escaped}"'
                     f' data-1st-years="{yr1}" data-2nd-years="{yr2}"'
-                    f' data-3rd-years="{yr3}" data-4th-years="{yr4}"'
-                    ' style="font-family: \'Segoe UI\', Arial, sans-serif; border: 1px solid #d0d7de;'
-                    ' border-radius: 8px; padding: 18px 20px; margin-bottom: 20px; background-color: #ffffff;'
-                    ' box-shadow: 0 2px 5px rgba(0,0,0,0.05);">'
+                    f' data-3rd-years="{yr3}" data-4th-years="{yr4}">'
                 ),
-                " <div style='border-bottom: 2px solid #002f6c; padding-bottom: 8px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: flex-start;'>",
-                "   <div>",
-                f"     <h3 style='margin: 0; color: #002f6c; font-size: 19px; font-weight: 700;'>{title_html}</h3>",
+                '  <div class="card-header-flex">',
+                '    <div>',
+                f'      <h3 class="card-title">{title_html}</h3>',
             ]
-
+            
             if subtitle_str:
                 card.append(
-                    f"     <div style='margin-top: 4px; font-size: 13px; color: #57606a; font-weight: 600;'>{subtitle_str}</div>"
+                    f'      <div class="card-subtitle">{subtitle_str}</div>'
                 )
-
+            
             card.extend([
-                "   </div>",
-                "   <button onclick='hideCourseCard(this)' style='background: none; border: 1px solid #d0d7de; border-radius: 4px; padding: 2px 8px; font-size: 12px; color: #cf222e; cursor: pointer; font-weight: 600;' title='Hide this course'>✕ Hide</button>",
-                " </div>",
-                " <div style='font-size: 14px; line-height: 1.8; color: #24292f;'>",
-                f'   <div>🕒 <b>Schedule:</b> {schedule_display}</div>',
-                f'   <div>👤 <b>Instructor:</b> {instructor_display}</div>',
-                f'   <div>👥 <b>Capacity:</b> {capacity_display}</div>',
+                '    </div>',
+                '    <button onclick="hideCourseCard(this)" class="btn-hide-course" title="Hide this course">✕ Hide</button>',
+                '  </div>',
+                '  <div class="card-details">',
+                f'    <div>🕒 <b>Schedule:</b> {schedule_display}</div>',
+                f'    <div>👤 <b>Instructor:</b> {instructor_display}</div>',
+                f'    <div>👥 <b>Capacity:</b> {capacity_display}</div>',
             ])
             
-
             if cross_display:
-                card.append(f'   <div>🔀 <b>Cross-listed:</b> {cross_display}</div>')
-
+                card.append(f'    <div>🔀 <b>Cross-listed:</b> {cross_display}</div>')
+            
             if prereq_display:
-                card.append(f'   <div>📋 <b>Prerequisites:</b> {prereq_display}</div>')
-
+                card.append(f'    <div>📋 <b>Prerequisites:</b> {prereq_display}</div>')
+            
             if comments_display:
-                card.append(f'   <div>💬 <b>Comments:</b> {comments_display}</div>')
-
+                card.append(f'    <div>💬 <b>Comments:</b> {comments_display}</div>')
+            
             hist_info_html = build_historical_html(row)
             if is_valid(hist_info_html):
                 card.append(f'{hist_info_html}')
-
-            card.append(' </div>')
-
+            
+            card.append('  </div>')
+            
             desc = row.get('Course Description')
             if is_valid(desc):
                 cleaned_desc = clean_html(desc)
                 card.extend([
-                    " <div style='margin-top: 14px;'>",
-                    "   <div style='font-size: 12px; font-weight: 700; color: #57606a; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;'>📖 Description</div>",
-                    "   <div style='font-size: 14px; color: #24292f; line-height: 1.6; background-color: #f6f8fa; border-left: 4px solid #002f6c; padding: 10px 14px; border-radius: 0 6px 6px 0;'>",
-                    f"     {cleaned_desc}",
-                    "   </div>",
-                    " </div>",
+                    '  <div style="margin-top: 14px;">',
+                    '    <div class="desc-label">📖 Description</div>',
+                    f'    <div class="desc-body">{cleaned_desc}</div>',
+                    '  </div>',
                 ])
-                
+            
             if matching_labs:
-                card.append('  <div class="nested-labs-container" style="margin-top: 15px; padding: 12px; background-color: #f0f4f8; border-radius: 6px; border: 1px solid #d0d7de;">')
-                card.append(f'    <strong style="color: #002f6c; font-size: 13px;">🔬 Required Co-requisite Lab Sections ({len(matching_labs)} available):</strong>')
+                card.append('  <div class="nested-labs-container">')
+                card.append(f'    <strong class="lab-title-text">🔬 Required Co-requisite Lab Sections ({len(matching_labs)} available):</strong>')
                 
                 for lab in matching_labs:
                     lab_sec = str(lab.get('Section', '')).strip()
@@ -640,14 +634,14 @@ def display_course_info(data, mode='html'):
                     lab_sched_str = " | ".join(lab_schedules) if lab_schedules else "TBA"
                     lab_inst = lab.get('INSTRUCTOR1', 'TBA')
                     lab_cap = clean_num(lab.get('MAXCAP') or lab.get('Sec Capacity', ''))
-    
+                    
                     card.append(f'''
-                    <div class="lab-card" style="margin-top: 8px; padding: 10px; background: #ffffff; border-left: 3px solid #002f6c; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-                        <div style="font-weight: bold; font-size: 13px; color: #24292f;">{lab_code}</div>
-                        <div style="font-size: 12px; color: #57606a; margin-top: 2px;">
-                            🕒 <b>Schedule:</b> {lab_sched_str} | 👤 <b>Instructor:</b> {lab_inst} | 👥 <b>Seats:</b> {lab_cap}
-                        </div>
-                    </div>
+                <div class="lab-card">
+                  <div class="lab-code">{lab_code}</div>
+                  <div class="lab-details">
+                    🕒 <b>Schedule:</b> {lab_sched_str} | 👤 <b>Instructor:</b> {lab_inst} | 👥 <b>Seats:</b> {lab_cap}
+                  </div>
+                </div>
                     ''')
                 card.append('  </div>') # Close nested-labs-container
             card.append('  </div>') # Close card-body
