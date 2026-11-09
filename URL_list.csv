@@ -12,16 +12,16 @@ AFRST,405,405,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/c
 AIIS,243,243,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/aiis-american-indian-and-indigenous-studies/200/aiis-243
 AIIS,262,262,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/aiis-american-indian-and-indigenous-studies/200/aiis-262
 AIIS,310,310,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/aiis-american-indian-and-indigenous-studies/300/aiis-310
-AMST,105,105,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/amst-american-studies/100/amst-105#middle
+AMST,105,105,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/amst-american-studies/100/amst-105
 AMST,117,117,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/amst-american-studies/117200/amst-117217
 AMST,217,217,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/amst-american-studies/117200/amst-117217
-AMST,239,239,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/amst-american-studies/200/amst-239#middle
+AMST,239,239,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/amst-american-studies/200/amst-239
 AMST,245,245,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/amst-american-studies/245300/amst-245-345
 AMST,310,310,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/amst-american-studies/300/amst-310
 AMST,345,345,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/amst-american-studies/245300/amst-245-345
 ANTHR,113,113,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/anthr-anthropology/100/anthr-113
 ANTHR,259,259,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/anthr-anthropology/200/anthr-259
-ANTHR,274,274,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/anthr-anthropology/200/anthr-274#middle
+ANTHR,274,274,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/anthr-anthropology/200/anthr-274
 ANTHR,288,288,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/anthr-anthropology/200/anthr-288
 ANTHR,348,348,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/anthr-anthropology/300/anthr-348
 ANTHR,350,350,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/anthr-anthropology/300/anthr-350
@@ -53,6 +53,7 @@ ART,233,233,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/cou
 ART,302,302,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/art-art/300/art-302
 ART,305,305,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/art-art/300/art-305
 ART,308,308,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/art-art/300/art-308
+ART,502,502,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/art-art/500/art-502
 ARTH,101,101,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/arth-art-history/100/arth-101
 ARTH,103W,103,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/arth-art-history/100/arth-103
 ARTH,152W,152,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/arth-art-history/100/arth-152
@@ -73,6 +74,7 @@ ASNST,208W,208,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/
 ASNST,232,232,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/asnst-asian-studies/200/asnst-232
 ASNST,271,271,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/asnst-asian-studies/200/asnst-271
 ASNST,289,289,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/asnst-asian-studies/200/asnst-289
+ASNST,290,290,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/asnst-asian-studies/200/asnst-290
 ASNST,318,318,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/asnst-asian-studies/300/asnst-318
 ASNST,346W,346,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/asnst-asian-studies/300/asnst-346
 BICHM,270,270,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/bichm-biochemistrymolecular-biology/200/bichm-270
@@ -151,7 +153,7 @@ CHEM,270L,270L,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/
 CHEM,270L,270L,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/chem-chemistry/200/chem-270
 CHEM,322,322,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/chem-chemistry/300/chem-322
 CHEM,325,325,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/chem-chemistry/300/chem-325
-CHEM,345,345,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/chem-chemistry/300/chem-345#middle
+CHEM,345,345,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/chem-chemistry/300/chem-345
 CHEM,347,347,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/chem-chemistry/300/chem-347
 CHEM,348,348,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/chem-chemistry/300/chem-348
 CHEM,361,361,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/chem-chemistry/300/chem-361
@@ -175,8 +177,9 @@ CNMS,243,243,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/co
 CNMS,289,289,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/cnms-cinema-and-media-studies/200/cnms-289
 CNMS,301,301,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/cnms-cinema-and-media-studies/300/cnms-301
 CNMS,349,349,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/cnms-cinema-and-media-studies/300/cnms-349
-CNMS,428,428,
+CNMS,428,428,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/frnch-french-and-francophone-studies/400/frnch-428
 COLEG,106,106,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/coleg-college-courses-and-seminars/100/coleg-106
+COLEG,223,223,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/coleg-college-courses-and-seminars/200/coleg-223
 COLEG,239,239,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/coleg-college-courses-and-seminars/200/coleg-239
 COLEG,281,281,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/coleg-college-courses-and-seminars/200/coleg-281
 COLEG,395,395,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/coleg-college-courses-and-seminars/300/coleg-395
@@ -356,7 +359,7 @@ HIST,288,288,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/co
 HIST,289,289,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/hist-history/200/hist-289
 HIST,296,296,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/hist-history/200/hist-296
 HIST,297,297,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/hist-history/200/hist-297
-HIST,340W,340,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/hist-history/300/hist-340#middle
+HIST,340W,340,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/hist-history/300/hist-340
 HIST,365W,365,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/hist-history/300/hist-365
 HIST,367W,367,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/hist-history/300/hist-367
 HIST,383W,383,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/hist-history/300/hist-383
@@ -380,7 +383,7 @@ HSPST,481,481,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/c
 ITALN,120,120,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/italn-italian/100/italn-120
 ITALN,120,120,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/italn-italian/100/italn-120
 ITALN,140,140,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/italn-italian/100/italn-140
-ITALN,230,230,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/italn-italian/200/italn-230#middle
+ITALN,230,230,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/italn-italian/200/italn-230
 ITALN,301,301,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/italn-italian/300/italn-301
 JAPN,120,120,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/japn-japanese/100/japn-120
 JAPN,120,120,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/japn-japanese/100/japn-120
@@ -470,7 +473,7 @@ MUSIC,142,142,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/c
 MUSIC,142,142,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/music-performance/100/music-141142
 MUSIC,142,142,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/music-performance/100/music-141142
 MUSIC,165,165,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/music-literature-and-history-of-music/160200/music-165-265
-MUSIC,217,217,
+MUSIC,217,217,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/music-literature-and-history-of-music/160200/music-117217
 MUSIC,221,221,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/music-literature-and-history-of-music/200/music-221
 MUSIC,231,231,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/music-performance/200/music-231
 MUSIC,242,242,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/music-performance/200/music-241-242
@@ -543,6 +546,8 @@ PHYS,480,480,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/co
 PHYS,550,550,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/phys-physics/500/phys-550
 PHYS,551,551,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/phys-physics/500/phys-551
 PPOL,101,101,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/ppol-public-policy/100/ppol-101
+GOVT,251,251,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/govt-government/200/govt-251
+PPOL,251,251,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/ppol-public-policy/200/ppol-251
 PPOL,273W,273,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/ppol-public-policy/200/ppol-273
 PPOL,500,500,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/ppol-public-policy/500/ppol-500
 PSYCH,101,101,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/psych-psychology/100/psych-101
@@ -603,7 +608,7 @@ SOC,351,351,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/cou
 THETR,100,100,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/thetr-theatre/100/thetr-100
 THETR,102,102,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/thetr-theatre/100/thetr-102
 THETR,142,142,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/thetr-theatre/100/thetr-141-142
-THETR,208,208,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/thetr-theatre/200/thetr-208#middle
+THETR,208,208,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/thetr-theatre/200/thetr-208
 THETR,213,213,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/thetr-theatre/200/thetr-213
 THETR,215,215,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/thetr-theatre/200/thetr-215
 THETR,217,217,https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/thetr-theatre/200/thetr-217

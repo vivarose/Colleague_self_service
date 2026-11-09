@@ -55,6 +55,19 @@ courses_df = courses_df.explode('Course Number').reset_index(drop=True)
 # 3. Strip any extra whitespace from the new course numbers
 courses_df['Course Number'] = courses_df['Course Number'].str.strip()
 
+#%% Add period to end of schedule_df['COMMNENTS']
+
+# Create a mask for rows that are not null, not blank (even after stripping spaces), 
+# and do not already end with a period.
+mask = (
+    schedule_df['COMMENTS'].notna() & 
+    (schedule_df['COMMENTS'].str.strip() != '') & 
+    ~schedule_df['COMMENTS'].str.strip().str.endswith('.', na=False)
+)
+
+# Apply the period only to the rows matching the mask
+schedule_df.loc[mask, 'COMMENTS'] = \
+    schedule_df.loc[mask, 'COMMENTS'].astype(str) + '.'
 
 #%% Split time columns into start and end time
 
