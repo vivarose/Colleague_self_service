@@ -51,19 +51,25 @@ def parse_allocations(text):
 def merge_allocations(schedule, seats):
     schedule = schedule.copy()
     seats = seats.copy()
+    
     for frame, number_column in ((schedule, 'Course Number+'), (seats, 'Course Number+')):
         frame['_allocation_key'] = [
             allocation_key(row['Subject Code'], row[number_column], row['Section'])
             for _, row in frame.iterrows()
         ]
+        
     if seats['_allocation_key'].duplicated().any():
         raise ValueError('Duplicate normalized seat allocation identities.')
+        
     schedule_keys = set(schedule['_allocation_key'])
     seat_keys = set(seats['_allocation_key'])
     print(f'Schedule sections without explicit allocations: {len(schedule_keys - seat_keys)}')
+    
     if seat_keys - schedule_keys:
         warnings.warn(f'PDF sections missing from schedule: {sorted(seat_keys - schedule_keys)}', stacklevel=2)
-    return schedule.merge(
+        
+    merged = schedule.merge(
         seats[['_allocation_key', *CAP_FIELDS]],
         on='_allocation_key', how='left', validate='many_to_one'
-    ).drop(columns='_allocation_key')
+    )
+    return merged.drop(columns='_allocation_key')
