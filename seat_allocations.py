@@ -51,7 +51,7 @@ def parse_allocations(text):
 def merge_allocations(schedule, seats):
     schedule = schedule.copy()
     seats = seats.copy()
-    for frame, number_column in ((schedule, 'Course Number+'), (seats, 'Course Number')):
+    for frame, number_column in ((schedule, 'Course Number+'), (seats, 'Course Number+')):
         frame['_allocation_key'] = [
             allocation_key(row['Subject Code'], row[number_column], row['Section'])
             for _, row in frame.iterrows()

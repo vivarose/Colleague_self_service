@@ -101,6 +101,8 @@ schedule_df.drop(columns=time_cols, inplace=True)
 extracted_keys = schedule_df['COURSE_NO'].astype(str).str.extract(
     r'([A-Za-z]+)\s*(\d+[A-Za-z]*)'
 )
+# Now extracted_keys is a dataframe with two columns: the subject codes and 
+# course number+
 schedule_df['Subject Code'] = extracted_keys[0].str.strip()
 schedule_df['Course Number+'] = extracted_keys[1].str.strip()
 
@@ -178,6 +180,7 @@ for page in reader.pages:
 from seat_allocations import parse_allocations, merge_allocations
 
 seats_df = pd.DataFrame(parse_allocations(pdf_text))
+seats_df = seats_df.rename(columns={'Course Number': 'Course Number+'})
 
 # 4. Ensure Section column exists on merged_df for exact section-level matching
 if 'Section' not in merged_df.columns:
