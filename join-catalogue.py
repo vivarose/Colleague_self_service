@@ -34,7 +34,7 @@ courses_df['Course Number'] = courses_df['Course Number'].astype(str).str.strip(
 courses_df['Subject Code'] = courses_df['Subject Code'].astype(str).str.strip()
 
 
-# Ensure 'Subject Name' column exists on final_df
+# Ensure 'Subject Name' column exists 
 if 'Subject Name' not in courses_df.columns:
     courses_df['Subject Name'] = np.nan
 
@@ -94,7 +94,7 @@ for col in time_cols:
 #print(schedule_df[['TIME1', 'TIME1-start', 'TIME1-end']].head())
 
 # Drop original TIME columns if you no longer need them
-schedule_df.drop(columns=time_cols, inplace=True)
+#schedule_df.drop(columns=time_cols, inplace=True)
 
 #%% 3. Extract 'Subject Code' and 'Course Number' from the schedule's 'COURSE_NO' column
 # Example: 'AFRST102 01' -> Subject: 'AFRST', Number: '102'
