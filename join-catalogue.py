@@ -28,6 +28,10 @@ os.chdir(os.environ.get('CATALOG_INPUT_DIR', os.path.dirname(os.path.abspath(__f
 # 1. Load the two files
 schedule_df = pd.read_excel('courseschedule.xlsx')
 courses_df = pd.read_csv('courseExport.csv')
+try:
+    prev_df = pd.read_pickle('merged_course_schedule.pkl')
+except:
+    prev_df = pd.DataFrame()
 
 # 2. Convert 'Course Number' in catalog to string for safe joining
 courses_df['Course Number'] = courses_df['Course Number'].astype(str).str.strip()
