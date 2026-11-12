@@ -52,6 +52,19 @@ courses_df['Subject Name'] = np.where(
 
 # Save the currently adjusted (one-class) capacity to a new column
 schedule_df = schedule_df.rename(columns={'MAXCAP': 'current_capacity'})
+# Check schedule for duplicates
+duplicates = schedule_df[schedule_df.duplicated(subset=['COURSE_NO'], keep=False)]
+
+if not duplicates.empty:
+    print(f"⚠️ Found {len(duplicates)} rows of schedule_df with ambiguous section identities. Inspect these:")
+    # Display the columns that help identify the duplicates
+    cols_to_show = ['COURSE_NO']
+    if 'Course Name' in schedule_df.columns:
+        cols_to_show.append('Course Name')
+    elif 'TITLE' in schedule_df.columns:
+        cols_to_show.append('TITLE')
+        
+    print(duplicates[cols_to_show].sort_values(by=['Subject Code', 'Course Number+', 'Section']))
 
 # (schedule_df[schedule_df['INSTRUCTOR1'] == 'Merrill H'])[['Course Number+','MAXCAP']]
 
@@ -72,6 +85,8 @@ else:
     schedule_df['MAXCAP'] = schedule_df['current_capacity']
 
 #%% Clean up courses_df
+
+from course_info_to_html import is_valid
 courses_df = courses_df.rename(columns={'Instructor': 'Usual instructor'})
 
 # 1. Split 'Course Number' values on '/' into lists (e.g., ['145', '245'])
@@ -82,6 +97,20 @@ courses_df['Course Number'] = (
 courses_df = courses_df.explode('Course Number').reset_index(drop=True)
 # 3. Strip any extra whitespace from the new course numbers
 courses_df['Course Number'] = courses_df['Course Number'].str.strip()
+
+courses_df = courses_df[courses_df['Course Description'].apply(is_valid)]
+
+#%% Check courses_df for duplicates
+
+cols_to_compare = ['Subject Code', 'Course Number']
+duplicates_courses = courses_df[courses_df.duplicated(subset=cols_to_compare, keep=False)]
+if not duplicates_courses.empty:
+    print(f"⚠️ Found {len(duplicates)} rows of courses_df with ambiguous course identities. Inspect these:")
+    # Display the columns that help identify the duplicates
+    cols_to_show = cols_to_compare.copy()
+        
+    print(duplicates_courses[cols_to_show].sort_values(by=cols_to_compare))
+
 
 #%% Add period to end of schedule_df['COMMNENTS']
 
@@ -152,7 +181,7 @@ merged_df = schedule_df.merge(
     courses_df, on=['Subject Code', 'Course Number'], how='left', indicator=True
 )
 
-# Identify courses in schedule_df that were not found in courses_df
+#%% Identify courses in schedule_df that were not found in courses_df
 unmatched = merged_df[merged_df['_merge'] == 'left_only'][
     ['Subject Code', 'Course Number', 'COURSE_NO']
 ].drop_duplicates()
@@ -561,7 +590,7 @@ final_df = final_df[first_cols + remaining_cols]
 # Verify the updated column order
 #print(final_df.columns[:5].tolist())
 
-# Save the updated merged DataFrame
+#%% Save the updated merged DataFrame
 final_df.to_csv('merged_course_schedule.csv', index=False)
 final_df.to_pickle('merged_course_schedule.pkl')
 
@@ -569,3 +598,30 @@ print(f'Saved merged spreadsheet. Total rows: {len(final_df)}')
 print(os.getcwd())
 
 print(r'merged_course_schedule.csv / pkl');
+
+
+#%% Check for duplicates
+
+df = merged_df
+
+# Fill missing 'Course Number+' with 'Course Number' to match the script's logic
+course_nums = df['Course Number+'].fillna(df.get('Course Number', ''))
+
+# Create a temporary unique identifier for each section
+df['section_id'] = df['Subject Code'].astype(str) + " " + course_nums.astype(str) + "-" + df['Section'].astype(str)
+
+# Find all rows where this identifier is duplicated
+duplicates = df[df.duplicated(subset=['section_id'], keep=False)]
+
+if not duplicates.empty:
+    print(f"⚠️ Found {len(duplicates)} rows with ambiguous section identities. Inspect these:")
+    # Display the columns that help identify the duplicates
+    cols_to_show = ['Subject Code', 'Course Number+', 'Section']
+    if 'Course Name' in df.columns:
+        cols_to_show.append('Course Name')
+    elif 'TITLE' in df.columns:
+        cols_to_show.append('TITLE')
+        
+    print(duplicates[cols_to_show].sort_values(by=['Subject Code', 'Course Number+', 'Section']))
+
+
