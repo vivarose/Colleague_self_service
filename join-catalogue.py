@@ -30,6 +30,7 @@ schedule_df = pd.read_excel('courseschedule.xlsx')
 courses_df = pd.read_csv('courseExport.csv')
 try:
     prev_df = pd.read_pickle('merged_course_schedule.pkl')
+    prev_df = prev_df.drop_duplicates(subset=['COURSE_NO'], keep='first')
 except:
     prev_df = pd.DataFrame()
 
@@ -98,6 +99,7 @@ courses_df = courses_df.explode('Course Number').reset_index(drop=True)
 # 3. Strip any extra whitespace from the new course numbers
 courses_df['Course Number'] = courses_df['Course Number'].str.strip()
 
+# remove invalid course descriptions
 courses_df = courses_df[courses_df['Course Description'].apply(is_valid)]
 
 #%% Check courses_df for duplicates
@@ -110,7 +112,6 @@ if not duplicates_courses.empty:
     cols_to_show = cols_to_compare.copy()
         
     print(duplicates_courses[cols_to_show].sort_values(by=cols_to_compare))
-
 
 #%% Add period to end of schedule_df['COMMNENTS']
 
@@ -204,6 +205,25 @@ else:
 
 # Remove the temporary merge indicator column
 merged_df.drop(columns=['_merge'], inplace=True)
+
+#%% Check for duplicates
+df = merged_df
+
+# Create a temporary unique identifier for each section
+df['section_id'] = df['COURSE_NO'].astype(str) 
+
+# Find all rows where this identifier is duplicated
+duplicates = df[df.duplicated(subset=['section_id'], keep=False)]
+
+if not duplicates.empty:
+    print(f"⚠️ Found {len(duplicates)} rows with ambiguous section identities. Inspect these:")
+    # Display the columns that help identify the duplicates
+    cols_to_show = ['COURSE_NO']
+        
+    print(duplicates[cols_to_show])
+
+
+
 
 #%% Include class seat restrictions
 
@@ -602,7 +622,7 @@ print(r'merged_course_schedule.csv / pkl');
 
 #%% Check for duplicates
 
-df = merged_df
+df = prev_df
 
 # Fill missing 'Course Number+' with 'Course Number' to match the script's logic
 course_nums = df['Course Number+'].fillna(df.get('Course Number', ''))
