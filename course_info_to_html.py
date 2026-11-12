@@ -286,7 +286,7 @@ def get_base_num(course_num):
     if not is_valid(course_num):
         return ''
     # Remove trailing L, W, or section suffixes
-    clean = re.sub(r'[LwLW]$', '', str(course_num).strip())
+    clean = re.sub(r'[a-zA-Z]+$', '', str(course_num).strip())
     return clean
 
 def group_courses_and_labs(rows):
@@ -297,10 +297,10 @@ def group_courses_and_labs(rows):
     # First Pass: Separate Main Courses and Lab Courses
     for row in rows:
         subj = str(row.get('Subject Code', '')).strip()
-        num_plus = str(row.get('Course Number+', row.get('Course Number', ''))).strip()
+        course_num = str(row.get('Course Number', row.get('Course Number+', ''))).strip()
         
-        is_lab = num_plus.endswith('L') # only look for labs affiliated with coursees
-        base_num = get_base_num(num_plus)
+        is_lab = course_num.endswith('L') # only look for labs affiliated with coursees
+        base_num = get_base_num(course_num)
         group_key = (subj, base_num)
 
         if is_lab:
