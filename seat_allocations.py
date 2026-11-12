@@ -1,5 +1,7 @@
 import re
 import warnings
+import pandas as pd
+
 
 
 SECTION = r'[A-Z]+-[A-Z0-9]+-\d+'
@@ -48,9 +50,9 @@ def parse_allocations(text):
     return rows
 
 
-def merge_allocations(schedule, seats):
-    schedule = schedule.copy()
-    seats = seats.copy()
+def merge_allocations(schedule_df, seats_df):
+    schedule = schedule_df.copy()
+    seats = seats_df.copy()
     
     for frame, number_column in ((schedule, 'Course Number+'), (seats, 'Course Number+')):
         frame['_allocation_key'] = [
@@ -68,8 +70,27 @@ def merge_allocations(schedule, seats):
     if seat_keys - schedule_keys:
         warnings.warn(f'PDF sections missing from schedule: {sorted(seat_keys - schedule_keys)}', stacklevel=2)
         
+    # 1. Execute the merge and store it in a variable
     merged = schedule.merge(
         seats[['_allocation_key', *CAP_FIELDS]],
         on='_allocation_key', how='left', validate='many_to_one'
     )
+    
+    # 2. Check for capacity mismatches
+    if 'MAXCAP' in merged.columns and 'Sec Capacity' in merged.columns:
+        # Convert to numeric to avoid string formatting false-positives (e.g., '18' vs 18.0)
+        max_cap = pd.to_numeric(merged['MAXCAP'], errors='coerce')
+        sec_cap = pd.to_numeric(merged['Sec Capacity'], errors='coerce')
+        
+        # Filter for rows where both values exist (not NaN) but are not equal
+        mismatches = merged[(max_cap.notna()) & (sec_cap.notna()) & (max_cap != sec_cap)]
+        
+        if not mismatches.empty:
+            mismatched_keys = mismatches['_allocation_key'].tolist()
+            warnings.warn(
+                f"Capacity mismatch ('MAXCAP' vs 'Sec Capacity') found in {len(mismatches)} section(s): {mismatched_keys}", 
+                stacklevel=2
+            )
+            
+    # 3. Drop the allocation key and return
     return merged.drop(columns='_allocation_key')

@@ -47,6 +47,30 @@ courses_df['Subject Name'] = np.where(
     courses_df['Subject Code'] == 'MUSIC', 'Music', courses_df['Subject Name+']
 )
 
+#%% If registration is currently happening, then schedule_df is showing MAXCAP 
+# only for current registering class
+
+# Save the currently adjusted (one-class) capacity to a new column
+schedule_df = schedule_df.rename(columns={'MAXCAP': 'current_capacity'})
+
+# (schedule_df[schedule_df['INSTRUCTOR1'] == 'Merrill H'])[['Course Number+','MAXCAP']]
+
+# Merge the old 'Sec Capacity' into the new schedule_df
+if not prev_df.empty and 'MAXCAP' in prev_df.columns:
+    # Define the columns that uniquely identify a course section
+    # (Adjust these if your raw Excel file uses different column names for the section ID)
+    merge_keys = ['COURSE_NO']
+    
+    # Isolate only the keys and the column you want to pull over to avoid duplicating data
+    capacity_df = prev_df[merge_keys + ['MAXCAP']]
+    
+    # Left merge to keep all new courses while appending the old capacities
+    schedule_df = schedule_df.merge(capacity_df, on=merge_keys, how='left')
+else:
+    # Fallback in case the pickle file is missing or empty
+    warnings.warn('Falling back')
+    schedule_df['MAXCAP'] = schedule_df['current_capacity']
+
 #%% Clean up courses_df
 courses_df = courses_df.rename(columns={'Instructor': 'Usual instructor'})
 
@@ -192,6 +216,36 @@ if 'Section' not in merged_df.columns:
     merged_df['Section'] = merged_df['COURSE_NO'].astype(str).str.extract(r'(\d+)\s*$')[0].str.strip()
 
 final_df = merge_allocations(merged_df, seats_df)
+
+#%% Check for discrepancies between MAXCAP and Sec Capacity
+
+# 1. Safely convert 'Sec Capacity' to numeric (turns "" or text into NaN)
+sec_cap_numeric = pd.to_numeric(final_df['Sec Capacity'], errors='coerce')
+
+# 2. Create a mask checking for non-null values AND inequality
+mask = (
+    final_df['MAXCAP'].notna() & 
+    sec_cap_numeric.notna() & 
+    (final_df['MAXCAP'] != sec_cap_numeric)
+)
+
+check_me = final_df[mask].copy()
+
+# Reorder columns to make reviewing easier
+first_cols = ['Subject Code', 'Course Number+', 'Section', 'MAXCAP', 'Sec Capacity']
+
+# Collect all other existing columns in their original relative order
+remaining_cols = [col for col in check_me.columns if col not in first_cols]
+
+# Combine and reorder the DataFrame
+check_me = check_me[first_cols + remaining_cols]
+
+# Print the DataFrame
+print(check_me)
+
+#%% Use the pdf values when available.
+# Overwrite MAXCAP with Sec Capacity ONLY where they both exist and differ
+final_df.loc[mask, 'MAXCAP'] = sec_cap_numeric[mask]
 
 #%% Fix missing subject names
 # 1. Convert empty strings or whitespace-only cells to NaN

@@ -13,6 +13,7 @@ import re
 import pandas as pd
 import os
 import warnings
+import numpy as np
 
 from catalogue_snapshot import build_snapshot, canonical_json, publish_snapshot, record_id
 
@@ -536,7 +537,10 @@ def display_course_info(data, mode='html'):
             instructor_display = ', '.join(instructors) if instructors else 'TBA'
 
             cap_parts = []
-            max_cap = row.get('MAXCAP') or row.get('Sec Capacity')
+            max_cap = row.get('MAXCAP') or row.get('Sec Capacity') or row.get('current_capacity')
+            if np.isnan(max_cap):
+                max_cap = row.get('current_capacity')
+
             if is_valid(max_cap):
                 cap_parts.append(f'{clean_num(max_cap)} Seats')
 
