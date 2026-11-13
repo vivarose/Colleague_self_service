@@ -141,12 +141,12 @@ function filterCourses() {
   const hideAfter = parseInt(document.getElementById('timeAfterSelect').value, 10);
   const wiOnly = document.getElementById('wiOnly').checked;
   const noPrereqOnly = document.getElementById('noPrereqOnly').checked;
+  const includePe = document.getElementById('includePe')?.checked ?? false;
+  const searchesPe = /\b(phyed|pe|physical\s+education)\b/i.test(query);
 
-  // Safe fetch for department dropdown value
   const deptEl = document.getElementById('deptFilter');
   const selectedDept = deptEl ? deptEl.value : 'all';
 
-  // Safe fetch for course level dropdown value
   const levelEl = document.getElementById('levelFilter');
   const selectedLevel = levelEl ? levelEl.value : 'all';
 
@@ -155,37 +155,53 @@ function filterCourses() {
 
   cards.forEach(card => {
     let show = true;
+    const cardDept = card.getAttribute('data-subject');
 
-
-	// Check manual hide status first
+    // 1. Manual hide status
     if (card.getAttribute('data-user-hidden') === 'true') {
       show = false;
     }
 
-    // Filter by department
-    if (show && selectedDept !== 'all') {
-      const cardDept = card.getAttribute('data-subject');
-      if (cardDept !== selectedDept) {
-        show = false;
+    // 2. Department filter
+    if (show && selectedDept !== 'all' && cardDept !== selectedDept) {
+      show = false;
+    }
+
+    // 3. Hide PHYED courses by default unless opted in, selected, or searched
+    if (show && cardDept === 'PHYED' && !includePe && selectedDept !== 'PHYED' && !searchesPe) {
+      show = false;
+    }
+
+    // 4. Keyword search check (re-surfaces PHYED when searching pe / phyed / physical education)
+    if (show && query) {
+      const cardText = card.textContent.toLowerCase();
+
+      if (searchesPe) {
+        const remainingQuery = query
+          .replace(/\b(phyed|pe|physical\s+education)\b/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim();
+
+        if (cardDept === 'PHYED') {
+          show = !remainingQuery || cardText.includes(remainingQuery);
+        } else {
+          show = /\b(phyed|pe|physical\s+education)\b/.test(cardText) &&
+                 (!remainingQuery || cardText.includes(remainingQuery));
+        }
+      } else {
+        show = cardText.includes(query);
       }
     }
 
-    // Filter by course level (100, 200, 300, 400, 500)
+    // 5. Course level filter (100, 200, 300, 400, 500)
     if (show && selectedLevel !== 'all') {
       const cardLevel = card.getAttribute('data-level');
       if (cardLevel !== selectedLevel) {
         show = false;
       }
     }
-    // 1. Search Query Filter
-    if (query !== '') {
-      const cardText = card.innerText.toLowerCase();
-      if (!cardText.includes(query)) {
-        show = false;
-      }
-    }
 
-    // 2. Class Year Eligibility
+    // 6. Class year eligibility
     if (show && selectedYear !== 'all') {
       const yearStatus = card.getAttribute(`data-${selectedYear}`);
       if (yearStatus === 'no') {
@@ -193,7 +209,7 @@ function filterCourses() {
       }
     }
 
-    // 3. Hide Starts Before Boundary
+    // 7. Hide starts before boundary
     if (show && !isNaN(hideBefore)) {
       const startMin = parseInt(card.getAttribute('data-start-min'), 10);
       if (!isNaN(startMin) && startMin < hideBefore) {
@@ -201,7 +217,7 @@ function filterCourses() {
       }
     }
 
-    // 4. Hide Ends After Boundary
+    // 8. Hide ends after boundary
     if (show && !isNaN(hideAfter)) {
       const endMin = parseInt(card.getAttribute('data-end-min'), 10);
       if (!isNaN(endMin) && endMin > hideAfter) {
@@ -209,21 +225,21 @@ function filterCourses() {
       }
     }
 
-    // 5. Writing Intensive Check
+    // 9. Writing Intensive check
     if (show && wiOnly) {
       if (card.getAttribute('data-wi') !== 'true') {
         show = false;
       }
     }
 
-    // 6. Prerequisites Check
+    // 10. Prerequisites check
     if (show && noPrereqOnly) {
       if (card.getAttribute('data-has-prereq') === 'true') {
         show = false;
       }
     }
 
-    // 7. Busy Time Block / Schedule Conflict Exclusion
+    // 11. Busy time block / schedule conflict exclusion
     if (show && busyBlocks.length > 0) {
       const slotsRaw = card.getAttribute('data-slots');
       if (slotsRaw) {
@@ -234,11 +250,9 @@ function filterCourses() {
               const cDays = cSlot.days.split('');
               const hasDayOverlap = cDays.some(d => b.days.includes(d));
 
-              if (hasDayOverlap) {
-                if (cSlot.start < b.end && cSlot.end > b.start) {
-                  show = false;
-                  break;
-                }
+              if (hasDayOverlap && cSlot.start < b.end && cSlot.end > b.start) {
+                show = false;
+                break;
               }
             }
             if (!show) break;
@@ -278,6 +292,8 @@ function resetFilters() {
   // Reset checkboxes
   document.getElementById('wiOnly').checked = false;
   document.getElementById('noPrereqOnly').checked = false;
+  const includePeEl = document.getElementById('includePe');
+  if (includePeEl) includePeEl.checked = false;
 
   // Clear schedule conflict selections
   document.querySelectorAll('.busy-day').forEach(cb => cb.checked = false);
@@ -300,18 +316,7 @@ function getVisibleBookletCards() {
 window.addEventListener('beforeprint', prepareCourseBooklet);
 window.addEventListener('afterprint', () => document.getElementById('courseBooklet')?.replaceChildren());
 
-// Attach Event Listeners on DOM Load
-window.addEventListener('DOMContentLoaded', () => {
-  updateVisitCount();
-  document.getElementById('searchInput')?.addEventListener('input', filterCourses);
-  document.getElementById('classYearFilter')?.addEventListener('change', filterCourses);
-  document.getElementById('deptFilter')?.addEventListener('change', filterCourses);
-  document.getElementById('levelFilter')?.addEventListener('change', filterCourses);
-  document.getElementById('timeBeforeSelect')?.addEventListener('change', filterCourses);
-  document.getElementById('timeAfterSelect')?.addEventListener('change', filterCourses);
-  document.getElementById('wiOnly')?.addEventListener('change', filterCourses);
-  document.getElementById('noPrereqOnly')?.addEventListener('change', filterCourses);
-});
+
 
 function getCurrentCatalogSnapshot() {
   const element = document.getElementById('catalogSnapshot');
@@ -639,6 +644,7 @@ function prepareCourseBooklet() {
   }
   if (document.getElementById('wiOnly').checked) filters.push('Writing intensive only');
   if (document.getElementById('noPrereqOnly').checked) filters.push('No prerequisites only');
+  if (document.getElementById('includePe')?.checked) filters.push('Physical education included');
   busyBlocks.forEach(block => filters.push(`Unavailable: ${block.label}`));
   const hiddenCount = document.querySelectorAll('#courseContainer > [data-user-hidden="true"]').length;
   if (hiddenCount) filters.push(`Manually hidden: ${hiddenCount}`);
@@ -771,7 +777,8 @@ if (typeof window !== 'undefined') {
     document.getElementById('courseBooklet')?.replaceChildren();
     printMode = 'booklet';
   });
-
+  
+  // Attach Event Listeners on DOM Load
   window.addEventListener('DOMContentLoaded', () => {
     requestDailyRefresh();
     updateVisitCount();
@@ -783,6 +790,7 @@ if (typeof window !== 'undefined') {
     document.getElementById('timeAfterSelect')?.addEventListener('change', filterCourses);
     document.getElementById('wiOnly')?.addEventListener('change', filterCourses);
     document.getElementById('noPrereqOnly')?.addEventListener('change', filterCourses);
+    document.getElementById('includePe')?.addEventListener('change', filterCourses);
 
     filterCourses();
   });

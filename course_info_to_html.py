@@ -586,6 +586,7 @@ def display_course_info(data, mode='html'):
             card = [
                 (
                     f'<div class="course-card" data-subject="{subj}" data-level="{course_level}"'
+                    f' data-credits="{c_val}"'
                     f' data-record-ids="{record_ids_attribute}"'
                     f' data-days="{days_str}" data-start-min="{min_start}"'
                     f' data-end-min="{max_end}" data-wi="{is_wi}"'
