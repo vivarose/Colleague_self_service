@@ -297,11 +297,6 @@ function getVisibleBookletCards() {
   );
 }
 
-function printCourseBooklet() {
-  prepareCourseBooklet();
-  window.print();
-}
-
 window.addEventListener('beforeprint', prepareCourseBooklet);
 window.addEventListener('afterprint', () => document.getElementById('courseBooklet')?.replaceChildren());
 
