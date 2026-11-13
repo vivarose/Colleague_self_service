@@ -21,13 +21,16 @@ import numpy as np
 import pandas as pd
 import os
 import warnings
+from parse_colls_prod_export import load_and_parse_colls_export
 warnings.filterwarnings('ignore', category=UserWarning, module='openpyxl')
 
 os.chdir(os.environ.get('CATALOG_INPUT_DIR', os.path.dirname(os.path.abspath(__file__))))
 
-# 1. Load the two files
+# 1. Load the files
 schedule_df = pd.read_excel('courseschedule.xlsx')
 courses_df = pd.read_csv('courseExport.csv')
+colls_df = load_and_parse_colls_export('colls-prod-export.csv')
+
 try:
     prev_df = pd.read_pickle('merged_course_schedule.pkl')
     prev_df = prev_df.drop_duplicates(subset=['COURSE_NO'], keep='first')
@@ -177,8 +180,86 @@ schedule_df['Course Number'] = (
     .str.strip()
 )
 
-# 4. Perform a left join keeping all rows from schedule_df, using indicator=True
-merged_df = schedule_df.merge(
+schedule_df['Section'] = schedule_df['COURSE_NO'].astype(str).str.extract(r'(\d+)\s*$')[0].str.strip()
+
+
+#%% Merge colls-prod-export and schedule_df
+
+
+JOIN_KEYS = ['Subject Code', 'Course Number+', 'Section']
+
+def normalize_section(val):
+    if pd.isna(val):
+        return ''
+    s = str(val).strip()
+    if s.endswith('.0'):
+        s = s[:-2]
+    return (s.lstrip('0') or '0') if s.isdigit() else s.upper()
+
+def prep_keys(df):
+    df = df.copy()
+    df['Subject Code'] = df['Subject Code'].fillna('').astype(str).str.strip().str.upper()
+    df['Course Number+'] = df['Course Number+'].fillna('').astype(str).str.strip().str.upper()
+    df['Section'] = df['Section'].apply(normalize_section)
+    return df
+
+schedule_clean = prep_keys(schedule_df)
+colls_clean = prep_keys(colls_df)
+
+# Flag any duplicate keys where availability or faculty actually differ
+dups = colls_df[colls_df.duplicated(subset=JOIN_KEYS, keep=False)]
+if not dups.empty:
+    conflicting = (
+        dups.groupby(JOIN_KEYS)[['Availability', 'Faculty', 'Status']]
+        .nunique(dropna=False)
+        .gt(1)
+        .any(axis=1)
+    )
+    if conflicting.any():
+        bad_keys = conflicting[conflicting].index.tolist()
+        raise AssertionError(f"Conflicting duplicate keys in colls_df: {bad_keys}")
+
+    print(f"Dropping {dups.duplicated(subset=JOIN_KEYS).sum()} identical duplicate rows from colls_df.")
+    colls_df = colls_df.drop_duplicates(subset=JOIN_KEYS, keep='last').reset_index(drop=True)
+
+assert not colls_df.duplicated(subset=JOIN_KEYS).any(), "Duplicate keys in colls_df"
+
+merged_df = pd.merge(
+    schedule_clean,
+    colls_clean,
+    on=JOIN_KEYS,
+    how='outer',
+    suffixes=('_sched', '_colls'),
+    indicator='_merge_source',
+)
+
+# 1. Coalesce exact-name overlapping columns (prefer schedule_df, fallback to colls_df)
+shared_cols = [
+    'Writing-intensive', 'Course Number',
+    'DAY1', 'DAY2', 'DAY3',
+    'TIME1-start', 'TIME1-end', 'TIME2-start', 'TIME2-end',
+    'TIME3-start', 'TIME3-end', 'TIME4-start', 'TIME4-end',
+    'ROOM1', 'ROOM2', 'ROOM3', 'ROOM4',
+]
+for col in shared_cols:
+    merged_df[col] = merged_df[f'{col}_sched'].combine_first(merged_df[f'{col}_colls'])
+    merged_df.drop(columns=[f'{col}_sched', f'{col}_colls'], inplace=True)
+
+# 2. Backfill schedule_df columns expected by course_info_to_html.py for colls-only rows
+fallback_map = {
+    'TITLE': 'Title',
+    'CREDIT': 'Credits',
+    'TEACHINGMETHOD': 'Instructional Methods',
+    'COMMENTS': 'Comments',
+    'INSTRUCTOR1': 'Faculty',
+    'MAXCAP': 'Current Capacity',
+}
+for target_col, colls_col in fallback_map.items():
+    if colls_col in merged_df.columns:
+        merged_df[target_col] = merged_df[target_col].combine_first(merged_df[colls_col])
+
+#%% 4. Perform a left join keeping all rows from schedule_df, using indicator=True
+merged_df = merged_df.merge(
     courses_df, on=['Subject Code', 'Course Number'], how='left', indicator=True
 )
 

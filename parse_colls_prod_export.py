@@ -3,27 +3,72 @@
 Created on Thu Nov 12 19:38:20 2026
 
 @author: vhorowit with Gemini
+
+Reads colls-prod-export.csv and enriches it with parsed section, availability,
+and meeting schedule columns.
 """
 
 import re
 import pandas as pd
 import numpy as np
+from pathlib import Path
 
-#%% parse availability
 
-def parse_availability(df, col='Availability'):
+BASE_DIR = Path(__file__).resolve().parent
+
+#%% 1. Parse Section Name
+
+SECTION_NAME_RE = re.compile(
+    r'^\s*(?P<subject>[A-Za-z]+)'
+    r'-(?P<course_plus>\d+[A-Za-z]*)'
+    r'-(?P<section>[A-Za-z0-9]+)'
+    r'(?:\s+(?P<designations>.*\S))?\s*$'
+)
+
+
+def parse_section_name(df: pd.DataFrame, col: str = 'Section Name') -> pd.DataFrame:
+    """
+    Parses 'AFRST-146W-01  Writing Intensive' into Subject Code, Course Number+,
+    Course Number, Writing-intensive, Section, and Section Designations.
+    """
+    extracted = df[col].astype('string').str.extract(SECTION_NAME_RE)
+
+    df['Subject Code'] = extracted['subject'].str.strip().str.upper()
+    df['Course Number+'] = extracted['course_plus'].str.strip().str.upper()
+    df['Section'] = extracted['section'].str.strip().str.upper()
+
+    # Match join-catalogue.py conventions for catalog merging and W-flagging
+    df['Writing-intensive'] = np.where(
+        df['Course Number+'].str.contains('W', na=False), 'W', ''
+    )
+    df['Course Number'] = (
+        df['Course Number+']
+        .str.replace('W', '', regex=False)
+        .str.strip()
+    )
+    df['Section Designations'] = (
+        extracted['designations']
+        .str.replace(r'\s{2,}', ', ', regex=True)
+        .str.strip()
+    )
+
+    return df
+
+
+#%% 2. Parse Availability
+
+def parse_availability(df: pd.DataFrame, col: str = 'Availability') -> pd.DataFrame:
     """
     Parses 'Available / Taken / Capacity / Waitlisted' (e.g., '8 / 12 / 20 / 4')
     into nullable integer columns and derived availability flags.
     """
-    out_cols = ['Seats Available', 'Seats Taken', 'Seat Capacity', 'Seats Waitlisted']
+    out_cols = ['Seats Available', 'Seats Taken', 'Current Capacity', 'Seats Waitlisted']
 
     if col not in df.columns:
         for c in out_cols:
             df[c] = pd.Series(pd.NA, index=df.index, dtype='Int64')
         df['Has Open Seats'] = pd.Series(pd.NA, index=df.index, dtype='boolean')
         df['Has Waitlist'] = pd.Series(pd.NA, index=df.index, dtype='boolean')
-        df['Fill Rate'] = np.nan
         return df
 
     extracted = (
@@ -35,7 +80,7 @@ def parse_availability(df, col='Availability'):
     for idx, name in enumerate(out_cols):
         df[name] = pd.to_numeric(extracted[idx], errors='coerce').astype('Int64')
 
-    valid_mask = df['Seats Available'].notna() & df['Seat Capacity'].notna()
+    valid_mask = df['Seats Available'].notna() & df['Current Capacity'].notna()
     df['Has Open Seats'] = pd.Series(pd.NA, index=df.index, dtype='boolean')
     df.loc[valid_mask, 'Has Open Seats'] = df.loc[valid_mask, 'Seats Available'] > 0
 
@@ -43,14 +88,10 @@ def parse_availability(df, col='Availability'):
     df['Has Waitlist'] = pd.Series(pd.NA, index=df.index, dtype='boolean')
     df.loc[wl_mask, 'Has Waitlist'] = df.loc[wl_mask, 'Seats Waitlisted'] > 0
 
-    # Guard against 0 / 0 / 0 / 0 entries
-    cap = df['Seat Capacity'].astype('Float64')
-    taken = df['Seats Taken'].astype('Float64')
-    df['Fill Rate'] = np.where(cap > 0, (taken / cap).round(3), np.nan)
-
     return df
 
-#%% parse meeting times
+
+#%% 3. Parse Meeting Times
 
 DAY_TOKEN_MAP = {
     'M': 'M', 'MON': 'M',
@@ -127,9 +168,53 @@ def parse_schedule_entry(entry: str, max_slots: int = 4) -> dict:
     return parsed
 
 
-def add_parsed_schedule_columns(df: pd.DataFrame, source_col: str) -> pd.DataFrame:
+def add_parsed_schedule_columns(df: pd.DataFrame, source_col: str = 'Meeting Information') -> pd.DataFrame:
     """Applies parse_schedule_entry across a DataFrame column and attaches DAY*/TIME*/ROOM* columns."""
-    schedule_df = df[source_col].apply(parse_schedule_entry).apply(pd.Series)
+    schedule_df = pd.DataFrame(
+        df[source_col].apply(parse_schedule_entry).tolist(),
+        index=df.index,
+    )
     for col in schedule_df.columns:
         df[col] = schedule_df[col]
     return df
+
+
+#%% 4. Load and Parse Pipeline
+
+def load_and_parse_colls_export(csv_path: str | Path = BASE_DIR / 'colls-prod-export.csv') -> pd.DataFrame:
+    """Reads colls-prod-export.csv and applies all section, availability, and schedule parsers."""
+    df = pd.read_csv(csv_path, encoding='utf-8-sig')
+    df.columns = df.columns.str.strip()
+
+    df = parse_section_name(df, col='Section Name')
+    df = parse_availability(df, col='Availability')
+    df = add_parsed_schedule_columns(df, source_col='Meeting Information')
+
+    return df
+
+
+if __name__ == '__main__':
+    colls_csv = BASE_DIR / 'colls-prod-export.csv'
+    df_colls = load_and_parse_colls_export(colls_csv)
+
+    print(f"Loaded {len(df_colls)} rows and {len(df_colls.columns)} total columns.")
+
+    # Quick sanity checks on edge cases
+    unparsed_sections = df_colls[df_colls['Subject Code'].isna()]
+    if not unparsed_sections.empty:
+        print(f"⚠️ Unparsed Section Names ({len(unparsed_sections)}):")
+        print(unparsed_sections[['Section Name']].head(10))
+
+    has_meeting_text = df_colls['Meeting Information'].notna() & (df_colls['Meeting Information'].astype(str).str.strip() != '')
+    unparsed_meetings = df_colls[has_meeting_text & df_colls['DAY1'].isna()]
+    if not unparsed_meetings.empty:
+        print(f"⚠️ Meeting Information without parsed DAY1 ({len(unparsed_meetings)}):")
+        print(unparsed_meetings[['Section Name', 'Meeting Information']].drop_duplicates().head(10))
+
+    preview_cols = [
+        'Subject Code', 'Course Number+', 'Section', 'Writing-intensive',
+        'Faculty', 'DAY1', 'TIME1-start', 'TIME1-end', 'ROOM1',
+        'Seats Available', 'Current Capacity', 'Seats Waitlisted', 
+    ]
+    print("\nSample parsed output:")
+    print(df_colls[preview_cols].head(5).to_string(index=False))
