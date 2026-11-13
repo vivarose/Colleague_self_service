@@ -21,7 +21,7 @@ import numpy as np
 import pandas as pd
 import os
 import warnings
-from parse_colls_prod_export import load_and_parse_colls_export
+from parse_colls_prod_export import load_and_parse_colls_export, build_course_no
 warnings.filterwarnings('ignore', category=UserWarning, module='openpyxl')
 
 os.chdir(os.environ.get('CATALOG_INPUT_DIR', os.path.dirname(os.path.abspath(__file__))))
@@ -185,7 +185,6 @@ schedule_df['Section'] = schedule_df['COURSE_NO'].astype(str).str.extract(r'(\d+
 
 #%% Merge colls-prod-export and schedule_df
 
-
 JOIN_KEYS = ['Subject Code', 'Course Number+', 'Section']
 
 def normalize_section(val):
@@ -224,7 +223,7 @@ if not dups.empty:
 
 assert not colls_df.duplicated(subset=JOIN_KEYS).any(), "Duplicate keys in colls_df"
 
-merged_df = pd.merge(
+full_schedule_df = pd.merge(
     schedule_clean,
     colls_clean,
     on=JOIN_KEYS,
@@ -242,8 +241,8 @@ shared_cols = [
     'ROOM1', 'ROOM2', 'ROOM3', 'ROOM4',
 ]
 for col in shared_cols:
-    merged_df[col] = merged_df[f'{col}_sched'].combine_first(merged_df[f'{col}_colls'])
-    merged_df.drop(columns=[f'{col}_sched', f'{col}_colls'], inplace=True)
+    full_schedule_df[col] = full_schedule_df[f'{col}_sched'].combine_first(full_schedule_df[f'{col}_colls'])
+    full_schedule_df.drop(columns=[f'{col}_sched', f'{col}_colls'], inplace=True)
 
 # 2. Backfill schedule_df columns expected by course_info_to_html.py for colls-only rows
 fallback_map = {
@@ -255,12 +254,34 @@ fallback_map = {
     'MAXCAP': 'Current Capacity',
 }
 for target_col, colls_col in fallback_map.items():
-    if colls_col in merged_df.columns:
-        merged_df[target_col] = merged_df[target_col].combine_first(merged_df[colls_col])
+    if colls_col in full_schedule_df.columns:
+        full_schedule_df[target_col] = full_schedule_df[target_col].combine_first(full_schedule_df[colls_col])
+
+
 
 #%% 4. Perform a left join keeping all rows from schedule_df, using indicator=True
-merged_df = merged_df.merge(
+merged_df = full_schedule_df.merge(
     courses_df, on=['Subject Code', 'Course Number'], how='left', indicator=True
+)
+
+#%% Fill in Course_No
+
+if 'COURSE_NO' not in merged_df.columns:
+    merged_df['COURSE_NO'] = pd.NA
+
+missing_mask = merged_df['COURSE_NO'].isna() | (
+    merged_df['COURSE_NO'].astype(str).str.strip().isin(['', 'nan', 'None'])
+)
+
+num_col = 'Course Number+' if 'Course Number+' in merged_df.columns else 'Course Number'
+
+merged_df.loc[missing_mask, 'COURSE_NO'] = merged_df.loc[missing_mask].apply(
+    lambda row: build_course_no(
+        row.get('Subject Code'),
+        row.get(num_col),
+        row.get('Section'),
+    ),
+    axis=1,
 )
 
 #%% Identify courses in schedule_df that were not found in courses_df
@@ -675,7 +696,7 @@ final_df['Hist_Status'] = final_df['Offered_Last_Year'].map(
 )
 
 
-#%% Re-order the output and save
+#%% Re-order the output 
 # 1. Specify the desired leading columns
 first_cols = ['Subject Code', 'Course Number+', 'Section', 
               'TITLE', 'Course Name',  'CREDIT',

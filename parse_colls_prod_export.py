@@ -193,6 +193,28 @@ def load_and_parse_colls_export(csv_path: str | Path = BASE_DIR / 'colls-prod-ex
     return df
 
 
+def build_course_no(subj, course_num, section):
+    """Builds an 11-character fixed-width COURSE_NO from subject, number, and section."""
+    if pd.isna(subj) or pd.isna(course_num):
+        return pd.NA
+
+    subj_str = str(subj).strip().upper()
+    num_str = str(course_num).strip().upper()
+    if not subj_str or not num_str or subj_str == 'NAN' or num_str == 'NAN':
+        return pd.NA
+
+    sec_str = '' if pd.isna(section) else str(section).strip()
+    # Guard against numeric sections read as floats (e.g., 1.0 -> '01')
+    if sec_str.endswith('.0'):
+        sec_str = sec_str[:-2]
+    if sec_str.isdigit():
+        sec_str = sec_str.zfill(2)
+
+    return f"{subj_str:<5}{num_str:<4}{sec_str:<2}"
+
+#%% if name == main
+
+
 if __name__ == '__main__':
     colls_csv = BASE_DIR / 'colls-prod-export.csv'
     df_colls = load_and_parse_colls_export(colls_csv)
