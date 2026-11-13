@@ -189,7 +189,15 @@ def load_and_parse_colls_export(csv_path: str | Path = BASE_DIR / 'colls-prod-ex
     df = parse_section_name(df, col='Section Name')
     df = parse_availability(df, col='Availability')
     df = add_parsed_schedule_columns(df, source_col='Meeting Information')
-
+    df = df.rename(columns={'Comments': 'Comments (short)'})
+    df['Credits'] = (
+        df['Credits']
+        .astype(str)
+        .str.replace(r'\s*Credits?\b', '', case=False, regex=True)
+        .str.strip()
+        .replace({'nan': pd.NA, 'None': pd.NA, '': pd.NA})
+    )
+    
     return df
 
 
