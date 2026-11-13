@@ -87,6 +87,7 @@ SUBJECT_MAP = {
     'NEURO': 'Neuroscience',
     'PHIL': 'Philosophy',
     'PHYS': 'Physics',
+    'PHYED': 'Physical Education',
     'PPOL': 'Public Policy',
     'PSYCH': 'Psychology',
     'RELST': 'Religious Studies',
@@ -506,9 +507,12 @@ def display_course_info(data, mode='html'):
                 sub_items.append(subj)
 
             cred = row.get('CREDIT')
-            if is_valid(cred):
-                c_val = clean_num(cred)
-                sub_items.append(f"{c_val} Credit{'s' if c_val != '1' else ''}")
+            c_val = clean_num(cred) if is_valid(cred) else ''
+            if c_val:
+                if subj == 'PHYED' and c_val == '0':
+                    sub_items.append('PE Credit (0 Academic Credits)')
+                else:
+                    sub_items.append(f"{c_val} Credit{'s' if c_val != '1' else ''}")
 
             tm = str(row.get('TEACHINGMETHOD', '')).strip()
             if is_valid(tm):
