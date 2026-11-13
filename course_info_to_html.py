@@ -14,6 +14,7 @@ import pandas as pd
 import os
 import warnings
 import numpy as np
+from datetime import datetime
 
 from catalogue_snapshot import build_snapshot, canonical_json, publish_snapshot, record_id
 
@@ -392,6 +393,15 @@ def display_course_info(data, mode='html'):
         raise TypeError(
             'Input must be a pandas DataFrame, Series, dict, or list of rows.'
         )
+        
+    # obtain date of Seats Taken info
+    csv_path = BASE_DIR / "colls-prod-export.csv"
+    if csv_path.exists():
+        dt = datetime.fromtimestamp(csv_path.stat().st_mtime).astimezone()
+        as_of_label = f" as of {dt.strftime('%b')} {dt.day}" # e.g., " as of Nov 12"
+        # source_updated_at = dt.isoformat(timespec="seconds")
+    else:
+        as_of_label = ""
 
     if mode.lower() == 'html':
         parents, labs_by_key = group_courses_and_labs(rows) # group labs with parent courses
@@ -546,6 +556,11 @@ def display_course_info(data, mode='html'):
 
             if is_valid(max_cap):
                 cap_parts.append(f'{clean_num(max_cap)} Seats')
+
+            seats_taken = row.get('Seats Taken')
+            if is_valid(seats_taken):
+                seats_taken = clean_num(seats_taken)
+                cap_parts.append(f'({seats_taken} taken' + as_of_label + ')')
 
             seat_breakdown = []
             for yr, label in [('Fr Cap', 'Fr'), ('So Cap', 'So'), ('Jr Cap', 'Jr'), ('Sr Cap', 'Sr')]:
