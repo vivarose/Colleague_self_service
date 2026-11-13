@@ -528,13 +528,16 @@ def display_course_info(data, mode='html'):
                     schedules.append(time_str)
 
             schedule_display = ' &nbsp;|&nbsp; '.join(schedules) if schedules else 'TBA'
-
-            instructors = []
-            for i in range(1, 5):
-                inst = str(row.get(f'INSTRUCTOR{i}', '')).strip()
-                if is_valid(inst) and inst not in instructors:
-                    instructors.append(inst)
-            instructor_display = ', '.join(instructors) if instructors else 'TBA'
+            
+            if is_valid(row.get('Faculty')):
+                instructor_display = row.get('Faculty')
+            else:
+                instructors = []
+                for i in range(1, 5):
+                    inst = str(row.get(f'INSTRUCTOR{i}', '')).strip()
+                    if is_valid(inst) and inst not in instructors:
+                        instructors.append(inst)
+                instructor_display = ', '.join(instructors) if instructors else 'TBA'
 
             cap_parts = []
             max_cap = row.get('MAXCAP') or row.get('Sec Capacity') or row.get('current_capacity')
@@ -636,7 +639,7 @@ def display_course_info(data, mode='html'):
                             lab_schedules.append(f"{d} {st}–{en}" + (f" @ {rm}" if rm else ""))
                     
                     lab_sched_str = " | ".join(lab_schedules) if lab_schedules else "TBA"
-                    lab_inst = lab.get('INSTRUCTOR1', 'TBA')
+                    lab_inst = lab.get('Faculty', lab.get('INSTRUCTOR1', 'TBA'))
                     lab_cap = clean_num(lab.get('MAXCAP') or lab.get('Sec Capacity', ''))
                     
                     card.append(f'''
