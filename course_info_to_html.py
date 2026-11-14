@@ -785,3 +785,4 @@ if __name__ == '__main__':
         except Exception as e:
             print(f"❌ Error building courses.html: {e}")
             raise SystemExit(1) from e
+            

@@ -746,4 +746,27 @@ if not duplicates.empty:
         
     print(duplicates[cols_to_show].sort_values(by=['Subject Code', 'Course Number+', 'Section']))
 
+#%% Are unscheduled courses the courses admissions skips? Not quite.
 
+"""
+# 1. Normalize DAY1 to accurately catch all variations of "empty" 
+# (similar to the 'is_valid' function in your course_info_to_html.py script)
+day1_str = final_df['DAY1'].astype(str).str.strip().str.lower()
+no_schedule = final_df['DAY1'].isna() | day1_str.isin(['nan', 'none', 'null', ''])
+
+# 2. Identify courses merged as right_only
+is_right_only = final_df['_merge_source'] == 'right_only'
+
+# 3. Filter for anomalies: where the two conditions do NOT match
+anomalies = final_df[no_schedule != is_right_only]
+
+anomalies = anomalies[anomalies['Subject Code'] != 'PHYED']
+
+# 4. Display the results with the most relevant columns for debugging
+# (safely checking which naming conventions exist in the final_df)
+cols_to_show = ['Subject Code', 'Course Number', 'Course Number+', 'Course Name', 'TITLE', 'DAY1', '_merge_source']
+cols_to_show = [col for col in cols_to_show if col in anomalies.columns]
+
+print(f"Found {len(anomalies)} courses that break the pattern.")
+display(anomalies[cols_to_show])
+""";
