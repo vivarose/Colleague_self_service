@@ -28,6 +28,7 @@ TEACHING_METHODS = {
     'LEC': None,
     'LEC,Final Exam': None,
     'LEC Final Exam': None,
+    'LEC LEC': None,
     'SEM': 'Seminar',
     'LAB': 'Laboratory',
     'IND': 'Independent Study',
