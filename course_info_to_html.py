@@ -108,12 +108,12 @@ def build_dept_options(df, SUBJECT_MAP=SUBJECT_MAP):
         code_col = 'SUBJ'
         name_col = None
     else:
-        return '<option value="all">All Departments</option>'
+        return '<option value="all">All Subjects</option>'
 
     # Get sorted unique subject codes present in the dataframe
     unique_codes = sorted(df[code_col].dropna().unique())
 
-    options = ['<option value="all">All Departments</option>']
+    options = ['<option value="all">All Subjects</option>']
     for raw_code in unique_codes:
         code = str(raw_code).strip()
         if not code:
@@ -747,8 +747,8 @@ if __name__ == '__main__':
             print("🎨 [1/3] Generating course HTML cards...")
             full_course_html = display_course_info(df)
     
-            # 2. Build department dropdown options string
-            print("🏢 [2/3] Building department dropdown menu options...")
+            # 2. Build Subject dropdown options string
+            print("🏢 [2/3] Building Subject dropdown menu options...")
             dept_options = build_dept_options(df)
     
             # 3. Replace all placeholders on template_text

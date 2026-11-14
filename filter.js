@@ -641,7 +641,7 @@ function prepareCourseBooklet() {
   const query = document.getElementById('searchInput').value.trim();
   if (query) filters.push(`Keyword: ${query}`);
   for (const [identifier, label] of [
-    ['deptFilter', 'Department'], ['levelFilter', 'Course level'], ['classYearFilter', 'Class year'],
+    ['deptFilter', 'Subject'], ['levelFilter', 'Course level'], ['classYearFilter', 'Class year'],
     ['timeBeforeSelect', 'Starts at or after'], ['timeAfterSelect', 'Ends at or before']
   ]) {
     const select = document.getElementById(identifier);
