@@ -141,6 +141,7 @@ function filterCourses() {
   const hideAfter = parseInt(document.getElementById('timeAfterSelect').value, 10);
   const wiOnly = document.getElementById('wiOnly').checked;
   const noPrereqOnly = document.getElementById('noPrereqOnly').checked;
+  const hideFull = document.getElementById('hideFullCourses').checked;
   const includePe = document.getElementById('includePe')?.checked ?? false;
   const searchesPe = /\b(phyed|pe|physical\s+education)\b/i.test(query);
 
@@ -156,6 +157,7 @@ function filterCourses() {
   cards.forEach(card => {
     let show = true;
     const cardDept = card.getAttribute('data-subject');
+	const isFull = card.getAttribute('data-is-full') === 'true';
 
     // 1. Manual hide status
     if (card.getAttribute('data-user-hidden') === 'true') {
@@ -238,7 +240,12 @@ function filterCourses() {
         show = false;
       }
     }
-
+	
+	// Check for seats taken
+	if (hideFull && isFull) {
+		show = false; 
+	}
+	
     // 11. Busy time block / schedule conflict exclusion
     if (show && busyBlocks.length > 0) {
       const slotsRaw = card.getAttribute('data-slots');
@@ -740,7 +747,7 @@ async function requestDailyRefresh() {
       const result = await response.json();
       if (result.status === 'succeeded') {
         const metadata = JSON.parse(document.getElementById('catalogMetadata').textContent);
-        status.textContent = `Catalog refreshed for ${result.date} (fixed EST). `;
+        status.textContent = `Catalog refreshed for ${result.date}. `;
         if (metadata.refresh_date !== result.date) {
           const link = document.createElement('a');
           const updated = new URL(location.href);
@@ -761,9 +768,9 @@ async function requestDailyRefresh() {
       path = result.status === 'not_requested' ? '/refresh' : '/status';
       await new Promise(resolve => setTimeout(resolve, 15_000));
     }
-    throw new Error('Refresh is still pending. Reopen the app later to check its status.');
+    throw new Error('Daily refresh is still pending. Reopen the app later to check its status.');
   } catch (error) {
-    status.textContent = `Not guaranteed to be up-to-date. Check email for latest changes.`;
+    /* status.textContent = `Not guaranteed to be up-to-date. Check email for latest changes.`; */
     console.error('Daily catalog refresh:', error);
   }
 }
@@ -790,6 +797,7 @@ if (typeof window !== 'undefined') {
     document.getElementById('timeAfterSelect')?.addEventListener('change', filterCourses);
     document.getElementById('wiOnly')?.addEventListener('change', filterCourses);
     document.getElementById('noPrereqOnly')?.addEventListener('change', filterCourses);
+	document.getElementById('hideFullCourses')?.addEventListener('change', filterCourses);
     document.getElementById('includePe')?.addEventListener('change', filterCourses);
 
     filterCourses();

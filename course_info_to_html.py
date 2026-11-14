@@ -581,6 +581,12 @@ def display_course_info(data, mode='html'):
             cross_display = str(cross_list).strip().strip(',') if is_valid(cross_list) else None
 
             comments_display = clean_comments_notes(row.get('COMMENTS'), row.get('Notes'))
+            
+            # Identify if the course is full          
+            try:
+                is_full = 'true' if float(seats_taken) >= float(max_cap) else 'false'
+            except (ValueError, TypeError):
+                is_full = 'false'
                  
             ## BUILD THE CARD!
             card = [
@@ -592,6 +598,7 @@ def display_course_info(data, mode='html'):
                     f' data-end-min="{max_end}" data-wi="{is_wi}"'
                     f' data-has-prereq="{has_prereq}"'
                     f' data-slots="{slots_json_escaped}"'
+                    f' data-is-full="{is_full}"'
                     f' data-1st-years="{yr1}" data-2nd-years="{yr2}"'
                     f' data-3rd-years="{yr3}" data-4th-years="{yr4}">'
                 ),
