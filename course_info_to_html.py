@@ -704,7 +704,10 @@ def display_course_info(data, mode='html'):
             if prereq_display:
                 card.append(f'    <div>📋 <b>Prerequisites:</b> {prereq_display}</div>')
             if non_l_coreq_display:
-                card.append(f'    <div>🤝 <b>Corequisites:</b> {non_l_coreq_display}</div>')
+                if str(row.get('COURSE_NO', '')).strip() == 'HIST 340W01': #special case
+                    card.append(f'    <div>🤝 <b>Optional linked Course:</b> {non_l_coreq_display}</div>')
+                else:
+                    card.append(f'    <div>🤝 <b>Corequisites:</b> {non_l_coreq_display}</div>')
             if comments_display:
                 card.append(f'    <div>💬 <b>Comments:</b> {comments_display}</div>')
             
