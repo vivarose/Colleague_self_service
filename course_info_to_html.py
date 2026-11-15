@@ -703,9 +703,14 @@ def display_course_info(data, mode='html'):
                 card.append(f'    <div>🔀 <b>Cross-listed:</b> {cross_display}</div>')
             if prereq_display:
                 card.append(f'    <div>📋 <b>Prerequisites:</b> {prereq_display}</div>')
+            if str(row.get('Subject Code', '')).strip() == 'PHYS': #special case
+                if str(row.get('Course Number_x')).strip() == '290':
+                    card.append('    <div>🤝 <b>Co-recommended:</b> Math 216 is useful for developing spherical coordinates, which are used for both the hydrogen atom and spherical harmonics. Math 216 is also recommended prior to taking Phys 295.</div>')
+                if str(row.get('Course Number_x')).strip() == '295':
+                    card.append('    <div>📋 <b>Pre-recommended:</b> MATH-216</div>')
             if non_l_coreq_display:
                 if str(row.get('COURSE_NO', '')).strip() == 'HIST 340W01': #special case
-                    card.append(f'    <div>🤝 <b>Optional linked Course:</b> {non_l_coreq_display}</div>')
+                    card.append(f'    <div>🤝 <b>Co-recommended:</b> {non_l_coreq_display}</div>')
                 else:
                     card.append(f'    <div>🤝 <b>Corequisites:</b> {non_l_coreq_display}</div>')
             if comments_display:
