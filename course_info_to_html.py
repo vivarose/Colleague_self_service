@@ -209,15 +209,30 @@ def clean_room(room_val):
 
 def clean_html(text):
     """Strip raw HTML tags and decode HTML entities."""
+    # I tried without this and it's really better with stripping.
+    
+    # Return an empty string immediately if the input is null, empty, or invalid
     if not is_valid(text):
         return ''
+        
+    # Convert HTML character entities (e.g., '&amp;', '&#39;') back into normal text characters
     text_unescaped = html.unescape(str(text))
+    
+    # Replace <br> or <br/> tags with a space so words on adjacent lines don't merge
     clean = re.sub(r'<br\s*/?>', ' ', text_unescaped)
+    
+    # Remove opening <p> tags entirely, including any attributes (like class or style)
     clean = re.sub(r'<p[^>]*>', '', clean)
+    
+    # Replace closing </p> tags with a space to maintain separation between paragraphs
     clean = re.sub(r'</p>', ' ', clean)
+    
+    # Strip out any other remaining HTML tags (e.g., <b>, <a>, <span>)
     clean = re.sub(r'<[^>]+>', '', clean)
+    
+    # Collapse multiple consecutive whitespace characters (spaces, tabs, newlines) into a single space, 
+    # and strip leading/trailing whitespace from the ends
     return re.sub(r'\s+', ' ', clean).strip()
-
 
 def clean_title(title_str):
     """Format titles nicely, preserving Roman numerals."""
@@ -314,6 +329,57 @@ def group_courses_and_labs(rows):
             parents.append((group_key, row))
 
     return parents, labs_by_key
+
+LAB_COREQ_RE = re.compile(
+    r'\b(?:[A-Za-z]{2,5}[\s-]?\d{3}L(?:-\w+)?|lab(?:oratory|s)?)\b',
+    re.IGNORECASE,
+)
+
+
+def _strip_lab_mentions(text):
+    """Removes sentences or comma-separated items that refer to lab sections."""
+    sentences = re.split(r'(?<=[.!?])\s+|;\s*', text)
+    kept_sentences = []
+
+    for sentence in sentences:
+        sentence = sentence.strip()
+        if not sentence:
+            continue
+
+        clauses = [c.strip() for c in sentence.split(',') if c.strip()]
+        kept_clauses = [c for c in clauses if not LAB_COREQ_RE.search(c)]
+
+        if kept_clauses:
+            rebuilt = ', '.join(kept_clauses)
+            rebuilt = re.sub(r'^(?:and|or)\s+', '', rebuilt, flags=re.IGNORECASE)
+            kept_sentences.append(rebuilt)
+
+    return ' '.join(kept_sentences).strip()
+
+
+def get_non_l_coreqs(special, coreq, narrative):
+    """Combines corequisites, prioritizing narrative over standard corequisites,
+    while stripping out co-requisite lab section references."""
+    parts = []
+
+    if is_valid(special):
+        cleaned_special = clean_html(special)
+        parts.append(cleaned_special)
+
+    # Prioritize Narrative over standard Corequisites
+    if is_valid(narrative):
+        cleaned_narr = _strip_lab_mentions(clean_html(narrative))
+        if cleaned_narr:
+            parts.append(cleaned_narr)
+    elif is_valid(coreq):
+        cleaned_coreq = _strip_lab_mentions(clean_html(coreq))
+        if cleaned_coreq:
+            parts.append(cleaned_coreq)
+
+    if not parts:
+        return None
+
+    return ' '.join(parts)
 
 def get_course_level(course_num):
     """Extracts the first digit of the course number to determine level (e.g., '146W' -> '100')."""
@@ -580,8 +646,17 @@ def display_course_info(data, mode='html'):
 
             cross_list = row.get('Cross Listed Courses Narrative') or row.get('Cross Listed Courses')
             cross_display = str(cross_list).strip().strip(',') if is_valid(cross_list) else None
-
+            
             comments_display = clean_comments_notes(row.get('COMMENTS'), row.get('Notes'))
+            
+            # Generate the Non-L corequisites display string
+            non_l_coreq_display = get_non_l_coreqs(
+                row.get('Special Corequisites'),
+                row.get('Corequisites'),
+                row.get('Corequisite Narrative')
+            )
+            
+            special_bool = is_valid(row.get('Special Corequisites'))
             
             # Identify if the course is full          
             try:
@@ -600,6 +675,7 @@ def display_course_info(data, mode='html'):
                     f' data-has-prereq="{has_prereq}"'
                     f' data-slots="{slots_json_escaped}"'
                     f' data-is-full="{is_full}"'
+                    f' data-is-special="{str(special_bool).lower()}"' # true or false
                     f' data-1st-years="{yr1}" data-2nd-years="{yr2}"'
                     f' data-3rd-years="{yr3}" data-4th-years="{yr4}">'
                 ),
@@ -625,10 +701,10 @@ def display_course_info(data, mode='html'):
             
             if cross_display:
                 card.append(f'    <div>🔀 <b>Cross-listed:</b> {cross_display}</div>')
-            
             if prereq_display:
                 card.append(f'    <div>📋 <b>Prerequisites:</b> {prereq_display}</div>')
-            
+            if non_l_coreq_display:
+                card.append(f'    <div>🤝 <b>Corequisites:</b> {non_l_coreq_display}</div>')
             if comments_display:
                 card.append(f'    <div>💬 <b>Comments:</b> {comments_display}</div>')
             

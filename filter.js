@@ -142,6 +142,7 @@ function filterCourses() {
   const wiOnly = document.getElementById('wiOnly').checked;
   const noPrereqOnly = document.getElementById('noPrereqOnly').checked;
   const hideFull = document.getElementById('hideFullCourses').checked;
+  const hideSpecial = document.getElementById('hidespecial')?.checked ?? false;
   const includePe = document.getElementById('includePe')?.checked ?? false;
   const searchesPe = /\b(phyed|pe|physical\s+education)\b/i.test(query);
 
@@ -167,6 +168,13 @@ function filterCourses() {
     // 2. Department filter
     if (show && selectedDept !== 'all' && cardDept !== selectedDept) {
       show = false;
+    }
+	
+	// 12. Hide special programs check
+    if (show && hideSpecial) {
+      if (card.getAttribute('data-is-special').toLowerCase() === 'true') {
+        show = false;
+      }
     }
 
     // 3. Hide PHYED courses by default unless opted in, selected, or searched
@@ -297,8 +305,12 @@ function resetFilters() {
   document.getElementById('timeAfterSelect').value = '';
 
   // Reset checkboxes
-  document.getElementById('wiOnly').checked = false;
-  document.getElementById('noPrereqOnly').checked = false;
+  const wiCheckbox = document.getElementById('wiOnly');
+  if (wiCheckbox) {wiCheckbox.checked = false;}
+  const noPrereqCheckbox = document.getElementById('noPrereqOnly');
+  if (noPrereqCheckbox) {noPrereqCheckbox.checked = false;}
+  const hideSpecialEl = document.getElementById('hidespecial');
+  if (hideSpecialEl) hideSpecialEl.checked = false;
   const includePeEl = document.getElementById('includePe');
   if (includePeEl) includePeEl.checked = false;
 
@@ -798,6 +810,7 @@ if (typeof window !== 'undefined') {
     document.getElementById('wiOnly')?.addEventListener('change', filterCourses);
     document.getElementById('noPrereqOnly')?.addEventListener('change', filterCourses);
 	document.getElementById('hideFullCourses')?.addEventListener('change', filterCourses);
+	document.getElementById('hidespecial')?.addEventListener('change', filterCourses);
     document.getElementById('includePe')?.addEventListener('change', filterCourses);
 
     filterCourses();

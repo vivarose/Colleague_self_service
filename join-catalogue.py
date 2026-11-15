@@ -597,6 +597,35 @@ def determine_class_year_eligibility(row):
 year_cols = ['1st-years', '2nd-years', '3rd-years', '4th-years']
 final_df[year_cols] = final_df.apply(determine_class_year_eligibility, axis=1)
 
+#%% Mark if course has special corequisites
+
+# Ensure text columns are strings to avoid errors with .str accessor
+final_df['Course Name'] = final_df['Course Name'].fillna('')
+final_df['COMMENTS'] = final_df['COMMENTS'].fillna('')
+final_df['MAXCAP'] = pd.to_numeric(final_df['MAXCAP'], errors='coerce')
+
+# Define the filtering logic
+conditions = [
+    final_df['Course Name'].str.contains("Hamilton in New York City", case=False, na=False),
+    final_df['Course Name'].str.contains("Term in Washington", case=False, na=False),
+    final_df['COMMENTS'].str.contains("Justice Lab students only", case=False, na=False),
+    final_df['COMMENTS'].str.contains("Open to Co-Lab students only", case=False, na=False),
+    final_df['COMMENTS'].str.contains("Co-Lab", case=False, na=False) & (final_df['MAXCAP'] == 16)
+]
+
+# Define the corresponding Corequisites values
+choices = [
+    'NYC',
+    'DC',
+    'Co-Lab',
+    'Co-Lab',
+    'Co-Lab'
+]
+
+# Apply to a new column, defaulting to an empty string if no conditions are met
+final_df['Special Corequisites'] = np.select(conditions, choices, default='')
+
+
 #%% Merge in URLs
 
 if 'Catalogue URL' not in final_df.columns:
@@ -698,7 +727,8 @@ final_df['Hist_Status'] = final_df['Offered_Last_Year'].map(
 
 #%% Re-order the output 
 # 1. Specify the desired leading columns
-first_cols = ['Subject Code', 'Course Number+', 'Section', 
+first_cols = ['Special Corequisites', 'Corequisites','Corequisite Narrative', 
+    'Subject Code', 'Course Number+', 'Section', 
               'TITLE', 'Course Name',  'CREDIT',
               'DAY1', 'TIME1-start', 'TIME1-end',
               'DAY2', 'TIME2-start', 'TIME2-end',
