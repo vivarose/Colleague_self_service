@@ -656,7 +656,7 @@ def display_course_info(data, mode='html'):
                 row.get('Corequisite Narrative')
             )
             
-            special_bool = is_valid(row.get('Special Corequisites'))
+            is_special = str(is_valid(row.get('Special Corequisites'))).lower()
             
             # Identify if the course is full          
             try:
@@ -675,7 +675,7 @@ def display_course_info(data, mode='html'):
                     f' data-has-prereq="{has_prereq}"'
                     f' data-slots="{slots_json_escaped}"'
                     f' data-is-full="{is_full}"'
-                    f' data-is-special="{str(special_bool).lower()}"' # true or false
+                    f' data-is-special="{is_special}"' # true or false
                     f' data-1st-years="{yr1}" data-2nd-years="{yr2}"'
                     f' data-3rd-years="{yr3}" data-4th-years="{yr4}">'
                 ),
