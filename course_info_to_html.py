@@ -675,7 +675,7 @@ def display_course_info(data, mode='html'):
                     f' data-has-prereq="{has_prereq}"'
                     f' data-slots="{slots_json_escaped}"'
                     f' data-is-full="{is_full}"'
-                    f' data-is-special="{special_bool}"'
+                    f' data-is-special="{str(special_bool).lower()}"' # true or false
                     f' data-1st-years="{yr1}" data-2nd-years="{yr2}"'
                     f' data-3rd-years="{yr3}" data-4th-years="{yr4}">'
                 ),
