@@ -727,8 +727,7 @@ final_df['Hist_Status'] = final_df['Offered_Last_Year'].map(
 
 #%% Re-order the output 
 # 1. Specify the desired leading columns
-first_cols = ['Special Corequisites', 'Corequisites','Corequisite Narrative', 
-    'Subject Code', 'Course Number+', 'Section', 
+first_cols = ['Subject Code', 'Course Number+', 'Section', 
               'TITLE', 'Course Name',  'CREDIT',
               'DAY1', 'TIME1-start', 'TIME1-end',
               'DAY2', 'TIME2-start', 'TIME2-end',
