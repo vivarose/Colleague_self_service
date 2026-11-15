@@ -209,15 +209,30 @@ def clean_room(room_val):
 
 def clean_html(text):
     """Strip raw HTML tags and decode HTML entities."""
+    # I tried without this and it's really better with stripping.
+    
+    # Return an empty string immediately if the input is null, empty, or invalid
     if not is_valid(text):
         return ''
+        
+    # Convert HTML character entities (e.g., '&amp;', '&#39;') back into normal text characters
     text_unescaped = html.unescape(str(text))
+    
+    # Replace <br> or <br/> tags with a space so words on adjacent lines don't merge
     clean = re.sub(r'<br\s*/?>', ' ', text_unescaped)
+    
+    # Remove opening <p> tags entirely, including any attributes (like class or style)
     clean = re.sub(r'<p[^>]*>', '', clean)
+    
+    # Replace closing </p> tags with a space to maintain separation between paragraphs
     clean = re.sub(r'</p>', ' ', clean)
+    
+    # Strip out any other remaining HTML tags (e.g., <b>, <a>, <span>)
     clean = re.sub(r'<[^>]+>', '', clean)
+    
+    # Collapse multiple consecutive whitespace characters (spaces, tabs, newlines) into a single space, 
+    # and strip leading/trailing whitespace from the ends
     return re.sub(r'\s+', ' ', clean).strip()
-
 
 def clean_title(title_str):
     """Format titles nicely, preserving Roman numerals."""
