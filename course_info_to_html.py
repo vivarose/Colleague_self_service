@@ -315,6 +315,25 @@ def group_courses_and_labs(rows):
 
     return parents, labs_by_key
 
+def get_non_l_coreqs(special, coreq, narrative):
+    """Combines corequisites, prioritizing narrative over standard corequisites."""
+    parts = []
+    
+    if is_valid(special):
+        parts.append(clean_html(special))
+        
+    # Prioritize Narrative over standard Corequisites
+    if is_valid(narrative):
+        parts.append(clean_html(narrative))
+    elif is_valid(coreq):
+        parts.append(clean_html(coreq))
+        
+    if not parts:
+        return None
+        
+    # Join with a space (or ' | ' if you prefer visual separation)
+    return ' '.join(parts)
+
 def get_course_level(course_num):
     """Extracts the first digit of the course number to determine level (e.g., '146W' -> '100')."""
     if not is_valid(course_num):
@@ -580,8 +599,15 @@ def display_course_info(data, mode='html'):
 
             cross_list = row.get('Cross Listed Courses Narrative') or row.get('Cross Listed Courses')
             cross_display = str(cross_list).strip().strip(',') if is_valid(cross_list) else None
-
+            
             comments_display = clean_comments_notes(row.get('COMMENTS'), row.get('Notes'))
+            
+            # Generate the Non-L corequisites display string
+            non_l_coreq_display = get_non_l_coreqs(
+                row.get('Special Corequisites'),
+                row.get('Corequisites'),
+                row.get('Corequisite Narrative')
+            )
             
             # Identify if the course is full          
             try:
@@ -625,10 +651,10 @@ def display_course_info(data, mode='html'):
             
             if cross_display:
                 card.append(f'    <div>🔀 <b>Cross-listed:</b> {cross_display}</div>')
-            
             if prereq_display:
                 card.append(f'    <div>📋 <b>Prerequisites:</b> {prereq_display}</div>')
-            
+            if non_l_coreq_display:
+                card.append(f'    <div>🤝 <b>Corequisites:</b> {non_l_coreq_display}</div>')
             if comments_display:
                 card.append(f'    <div>💬 <b>Comments:</b> {comments_display}</div>')
             
