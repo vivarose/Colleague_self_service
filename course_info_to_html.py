@@ -315,23 +315,55 @@ def group_courses_and_labs(rows):
 
     return parents, labs_by_key
 
+LAB_COREQ_RE = re.compile(
+    r'\b(?:[A-Za-z]{2,5}[\s-]?\d{3}L(?:-\w+)?|lab(?:oratory|s)?)\b',
+    re.IGNORECASE,
+)
+
+
+def _strip_lab_mentions(text):
+    """Removes sentences or comma-separated items that refer to lab sections."""
+    sentences = re.split(r'(?<=[.!?])\s+|;\s*', text)
+    kept_sentences = []
+
+    for sentence in sentences:
+        sentence = sentence.strip()
+        if not sentence:
+            continue
+
+        clauses = [c.strip() for c in sentence.split(',') if c.strip()]
+        kept_clauses = [c for c in clauses if not LAB_COREQ_RE.search(c)]
+
+        if kept_clauses:
+            rebuilt = ', '.join(kept_clauses)
+            rebuilt = re.sub(r'^(?:and|or)\s+', '', rebuilt, flags=re.IGNORECASE)
+            kept_sentences.append(rebuilt)
+
+    return ' '.join(kept_sentences).strip()
+
+
 def get_non_l_coreqs(special, coreq, narrative):
-    """Combines corequisites, prioritizing narrative over standard corequisites."""
+    """Combines corequisites, prioritizing narrative over standard corequisites,
+    while stripping out co-requisite lab section references."""
     parts = []
-    
+
     if is_valid(special):
-        parts.append(clean_html(special))
-        
+        cleaned_special = clean_html(special)
+        parts.append(cleaned_special)
+
     # Prioritize Narrative over standard Corequisites
     if is_valid(narrative):
-        parts.append(clean_html(narrative))
+        cleaned_narr = _strip_lab_mentions(clean_html(narrative))
+        if cleaned_narr:
+            parts.append(cleaned_narr)
     elif is_valid(coreq):
-        parts.append(clean_html(coreq))
-        
+        cleaned_coreq = _strip_lab_mentions(clean_html(coreq))
+        if cleaned_coreq:
+            parts.append(cleaned_coreq)
+
     if not parts:
         return None
-        
-    # Join with a space (or ' | ' if you prefer visual separation)
+
     return ' '.join(parts)
 
 def get_course_level(course_num):
