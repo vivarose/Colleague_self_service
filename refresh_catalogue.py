@@ -240,11 +240,18 @@ def refresh(output, refresh_date):
 
         if (ROOT / 'catalogue-history').exists():
             shutil.copytree(ROOT / 'catalogue-history', staging / 'catalogue-history', dirs_exist_ok=True)
-        if (ROOT / 'URL_list.csv').exists():
-            shutil.copy2(ROOT / 'URL_list.csv', staging / 'URL_list.csv')
-        if (ROOT / 'colls-prod-export.csv').exists():
-                shutil.copy2(ROOT / 'colls-prod-export.csv', 
-                             staging / 'colls-prod-export.csv')
+
+        files_to_copy = [
+            'URL_list.csv', 
+            'colls-prod-export.csv', 
+            'merged_course_schedule.pkl',
+            'course_info_to_html.py', 'catalogue_snapshot.py', 
+            'htmltemplate.html', 'filter.js'
+        ]
+        for filename in files_to_copy:
+            src_file = ROOT / filename
+            if src_file.exists():
+                shutil.copy2(src_file, staging / filename)
         
         try:
             subprocess.run(
@@ -252,7 +259,8 @@ def refresh(output, refresh_date):
                 env=environment, 
                 check=True, 
                 capture_output=True, 
-                text=True
+                text=True,
+                encoding='utf-8'
             )
         except subprocess.CalledProcessError as e:
             print("--- ERROR LOG FROM join-catalogue.py ---")
@@ -266,9 +274,6 @@ def refresh(output, refresh_date):
             # This is ok. This is because I'm adding PE courses and others.
             print(f"Original schedule rows from Admissions: {len(schedule)} | Merged rows: {len(merged)}")
             #raise ValueError('Merging sources changed the schedule row count.')
-        for name in ('course_info_to_html.py', 'catalogue_snapshot.py', 
-                     'htmltemplate.html', 'filter.js'):
-            shutil.copy2(ROOT / name, staging / name)
         if (output / 'catalog-snapshots').exists():
             shutil.copytree(output / 'catalog-snapshots', staging / 'catalog-snapshots')
         provenance = {
@@ -276,7 +281,7 @@ def refresh(output, refresh_date):
             'source_retrieved_at': datetime.now(timezone.utc).isoformat(), 'sources': sources
         }
         (staging / 'source-provenance.json').write_text(json.dumps(provenance, indent=2) + '\n')
-        subprocess.run([sys.executable, str(staging / 'course_info_to_html.py')], check=True)
+        subprocess.run([sys.executable, str(staging / 'course_info_to_html.py')], check=True, encoding='utf-8')
         # All network, parsing, and build checks finish before published files change.
         for name in ('merged_course_schedule.pkl', 'courses.html', 'source-provenance.json'):
             shutil.copy2(staging / name, output / name)
