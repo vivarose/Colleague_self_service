@@ -53,6 +53,10 @@ except Exception as e:
     prev_df = pd.DataFrame()
     
 print('Files loaded. Cleaning up data.')
+courses_df = courses_df.drop_duplicates()
+schedule_df = schedule_df.drop_duplicates()
+colls_df = colls_df.drop_duplicates()
+prev_df = prev_df.drop_duplicates()
 
 # 2. Convert 'Course Number' in catalog to string for safe joining
 courses_df['Course Number'] = courses_df['Course Number'].astype(str).str.strip()
@@ -125,7 +129,7 @@ courses_df['Course Number'] = courses_df['Course Number'].str.strip()
 # remove invalid course descriptions
 courses_df = courses_df[courses_df['Course Description'].apply(is_valid)]
 
-#%% Check courses_df for duplicates
+#%% Check courses_df for duplicates (in case there are still after dropping them)
 
 cols_to_compare = ['Subject Code', 'Course Number']
 duplicates_courses = courses_df[courses_df.duplicated(subset=cols_to_compare, keep=False)]
