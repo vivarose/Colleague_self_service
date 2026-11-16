@@ -252,6 +252,7 @@ def refresh(output, refresh_date):
             src_file = ROOT / filename
             if src_file.exists():
                 shutil.copy2(src_file, staging / filename)
+                print('Copied ' + filename + ' to temp.')
         
         try:
             subprocess.run(
