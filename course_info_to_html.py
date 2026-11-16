@@ -15,6 +15,9 @@ import os
 import warnings
 import numpy as np
 from datetime import datetime
+import sys
+if sys.stdout.encoding.lower() != 'utf-8':
+    sys.stdout.reconfigure(encoding='utf-8')
 
 from catalogue_snapshot import build_snapshot, canonical_json, publish_snapshot, record_id
 
