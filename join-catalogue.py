@@ -791,25 +791,27 @@ print(r'merged_course_schedule.csv / pkl');
 # pick which dataframe we are checking.
 df = prev_df
 
-# Fill missing 'Course Number+' with 'Course Number' to match the script's logic
-course_nums = df['Course Number+'].fillna(df.get('Course Number', ''))
+if not df.empty:
 
-# Create a temporary unique identifier for each section
-df['section_id'] = df['Subject Code'].astype(str) + " " + course_nums.astype(str) + "-" + df['Section'].astype(str)
-
-# Find all rows where this identifier is duplicated
-duplicates = df[df.duplicated(subset=['section_id'], keep=False)]
-
-if not duplicates.empty:
-    print(f"⚠️ Found {len(duplicates)} rows with ambiguous section identities. Inspect these:")
-    # Display the columns that help identify the duplicates
-    cols_to_show = ['Subject Code', 'Course Number+', 'Section']
-    if 'Course Name' in df.columns:
-        cols_to_show.append('Course Name')
-    elif 'TITLE' in df.columns:
-        cols_to_show.append('TITLE')
-        
-    print(duplicates[cols_to_show].sort_values(by=['Subject Code', 'Course Number+', 'Section']))
+    # Fill missing 'Course Number+' with 'Course Number' to match the script's logic
+    course_nums = df['Course Number+'].fillna(df.get('Course Number', ''))
+    
+    # Create a temporary unique identifier for each section
+    df['section_id'] = df['Subject Code'].astype(str) + " " + course_nums.astype(str) + "-" + df['Section'].astype(str)
+    
+    # Find all rows where this identifier is duplicated
+    duplicates = df[df.duplicated(subset=['section_id'], keep=False)]
+    
+    if not duplicates.empty:
+        print(f"WARNING Found {len(duplicates)} rows with ambiguous section identities. Inspect these:")
+        # Display the columns that help identify the duplicates
+        cols_to_show = ['Subject Code', 'Course Number+', 'Section']
+        if 'Course Name' in df.columns:
+            cols_to_show.append('Course Name')
+        elif 'TITLE' in df.columns:
+            cols_to_show.append('TITLE')
+            
+        print(duplicates[cols_to_show].sort_values(by=['Subject Code', 'Course Number+', 'Section']))
 
 #%% Are unscheduled courses the courses admissions skips? Not quite.
 
