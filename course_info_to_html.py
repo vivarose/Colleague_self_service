@@ -845,8 +845,8 @@ if __name__ == '__main__':
                 template_text.replace('{{FULL_TEXT_PLACEHOLDER}}', full_course_html)
                 .replace('{{FILTER_JS_PLACEHOLDER}}', js_text)
                 .replace('{{DEPT_OPTIONS_PLACEHOLDER}}', dept_options)
-                .replace('{{CATALOG_METADATA_PLACEHOLDER}}', canonical_json(metadata).replace('<', '\\u003c'))
-                .replace('{{CATALOG_SNAPSHOT_PLACEHOLDER}}', canonical_json(snapshot).replace('<', '\\u003c'))
+                .replace('{{CATALOG_METADATA_PLACEHOLDER}}', json.dumps(metadata, indent=2, sort_keys=True).replace('<', '\\u003c'))
+                .replace('{{CATALOG_SNAPSHOT_PLACEHOLDER}}', json.dumps(snapshot, indent=2, sort_keys=True).replace('<', '\\u003c'))
                 .replace('{{CATALOG_TERM_LABEL_PLACEHOLDER}}', html.escape(CATALOG_TERM_LABEL_SHORT))
             )
     
