@@ -255,7 +255,7 @@ def refresh(output, refresh_date):
                 print('Copied ' + filename + ' to temp.')
         
         try:
-            subprocess.run(
+            result = subprocess.run(
                 [sys.executable, '-u', str(ROOT / 'join-catalogue.py')], 
                 env=environment, 
                 check=True, 
@@ -263,6 +263,9 @@ def refresh(output, refresh_date):
                 text=True,
                 encoding='utf-8'
             )
+            # Add this line to surface prints from a successful run
+            print(result.stdout) 
+            
         except subprocess.CalledProcessError as e:
             print("--- ERROR LOG FROM join-catalogue.py ---")
             print(e.stderr)
@@ -284,7 +287,7 @@ def refresh(output, refresh_date):
         (staging / 'source-provenance.json').write_text(json.dumps(provenance, indent=2) + '\n')
         subprocess.run([sys.executable, str(staging / 'course_info_to_html.py')], check=True, encoding='utf-8')
         # All network, parsing, and build checks finish before published files change.
-        for name in ('merged_course_schedule.pkl', 'courses.html', 'source-provenance.json'):
+        for name in ('merged_course_schedule.pkl', 'merged_course_schedule.csv', 'courses.html', 'source-provenance.json'):
             shutil.copy2(staging / name, output / name)
         shutil.copytree(staging / 'catalog-snapshots', output / 'catalog-snapshots', dirs_exist_ok=True)
 
