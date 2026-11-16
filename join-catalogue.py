@@ -25,7 +25,10 @@ from parse_colls_prod_export import load_and_parse_colls_export, build_course_no
 import sys
 if sys.stdout.encoding.lower() != 'utf-8':
     sys.stdout.reconfigure(encoding='utf-8')
-    
+
+# During registration, set the following line to True.
+reg_giving_current_cap = True # Is the registrar only giving the current capacity?
+
 warnings.filterwarnings('ignore', category=UserWarning, module='openpyxl')
 
 os.chdir(os.environ.get('CATALOG_INPUT_DIR', os.path.dirname(os.path.abspath(__file__))))
@@ -68,8 +71,9 @@ courses_df['Subject Name'] = np.where(
 #%% If registration is currently happening, then schedule_df is showing MAXCAP 
 # only for current registering class
 
-# Save the currently adjusted (one-class) capacity to a new column
-schedule_df = schedule_df.rename(columns={'MAXCAP': 'current_capacity'})
+if reg_giving_current_cap:
+    # Save the currently adjusted (one-class) capacity to a new column
+    schedule_df = schedule_df.rename(columns={'MAXCAP': 'current_capacity'})
 # Check schedule for duplicates
 duplicates = schedule_df[schedule_df.duplicated(subset=['COURSE_NO'], keep=False)]
 
@@ -86,22 +90,23 @@ if not duplicates.empty:
 
 # (schedule_df[schedule_df['INSTRUCTOR1'] == 'Merrill H'])[['Course Number+','MAXCAP']]
 
-# Merge the old 'Sec Capacity' into the new schedule_df
-if not prev_df.empty and 'MAXCAP' in prev_df.columns:
-    # Define the columns that uniquely identify a course section
-    # (Adjust these if your raw Excel file uses different column names for the section ID)
-    merge_keys = ['COURSE_NO']
-    
-    # Isolate only the keys and the column you want to pull over to avoid duplicating data
-    capacity_df = prev_df[merge_keys + ['MAXCAP']]
-    
-    # Left merge to keep all new courses while appending the old capacities
-    schedule_df = schedule_df.merge(capacity_df, on=merge_keys, how='left')
-    print('Intentionally using old capacities, from before the registrar started adjustments.')
-else:
-    # Fallback in case the pickle file is missing or empty
-    warnings.warn('Falling back')
-    schedule_df['MAXCAP'] = schedule_df['current_capacity']
+if reg_giving_current_cap:
+    # Merge the old 'Sec Capacity' into the new schedule_df
+    if not prev_df.empty and 'MAXCAP' in prev_df.columns:
+        # Define the columns that uniquely identify a course section
+        # (Adjust these if your raw Excel file uses different column names for the section ID)
+        merge_keys = ['COURSE_NO']
+        
+        # Isolate only the keys and the column you want to pull over to avoid duplicating data
+        capacity_df = prev_df[merge_keys + ['MAXCAP']]
+        
+        # Left merge to keep all new courses while appending the old capacities
+        schedule_df = schedule_df.merge(capacity_df, on=merge_keys, how='left')
+        print('Intentionally using old capacities, from before the registrar started adjustments.')
+    else:
+        # Fallback in case the pickle file is missing or empty
+        warnings.warn('Falling back')
+        schedule_df['MAXCAP'] = schedule_df['current_capacity']
 
 #%% Clean up courses_df
 
@@ -797,7 +802,7 @@ print(r'merged_course_schedule.csv / pkl');
 #%% Check for duplicates in any of the dataframes
 
 # pick which dataframe we are checking.
-df = prev_df
+df = final_df
 
 if not df.empty:
 
