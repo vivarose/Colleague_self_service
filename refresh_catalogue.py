@@ -24,6 +24,9 @@ from pypdf import PdfReader
 from course_info_to_html import CATALOG_TERM, CATALOG_TERM_LABEL
 from seat_allocations import parse_allocations
 
+import sys
+if sys.stdout.encoding.lower() != 'utf-8':
+    sys.stdout.reconfigure(encoding='utf-8')
 
 ROOT = Path(__file__).resolve().parent
 CATALOG = 'https://hamilton.smartcatalogiq.com'

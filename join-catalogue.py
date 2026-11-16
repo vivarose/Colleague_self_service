@@ -22,6 +22,10 @@ import pandas as pd
 import os
 import warnings
 from parse_colls_prod_export import load_and_parse_colls_export, build_course_no
+import sys
+if sys.stdout.encoding.lower() != 'utf-8':
+    sys.stdout.reconfigure(encoding='utf-8')
+    
 warnings.filterwarnings('ignore', category=UserWarning, module='openpyxl')
 
 os.chdir(os.environ.get('CATALOG_INPUT_DIR', os.path.dirname(os.path.abspath(__file__))))
