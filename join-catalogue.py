@@ -28,7 +28,10 @@ if sys.stdout.encoding.lower() != 'utf-8':
     
 warnings.filterwarnings('ignore', category=UserWarning, module='openpyxl')
 
+#os.chdir(r"C:\Users\vhorowit\Documents\GitHub\Colleague_self_service\stage")
 os.chdir(os.environ.get('CATALOG_INPUT_DIR', os.path.dirname(os.path.abspath(__file__))))
+#print(os.listdir())
+
 
 # 1. Load the files
 print('Loading files')

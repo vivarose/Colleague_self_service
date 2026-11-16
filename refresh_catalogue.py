@@ -227,8 +227,11 @@ def refresh(output, refresh_date):
         raise ValueError('Seat allocation feed has fewer than 200 rows; manual review required.')
     if new_descriptions:
         catalog = fetch_catalog(schedule, sources)
-    with tempfile.TemporaryDirectory() as temporary:
-        staging = Path(temporary)
+    #with tempfile.TemporaryDirectory() as temporary:
+    if True: # keeping my indentations
+        #staging = Path(temporary)
+        staging = Path("stage")
+        staging.mkdir(exist_ok=True)
         pd.DataFrame(schedule).to_excel(staging / 'courseschedule.xlsx', index=False)
         if new_descriptions:
             pd.DataFrame(catalog).to_csv(staging / 'courseExport.csv', index=False)
