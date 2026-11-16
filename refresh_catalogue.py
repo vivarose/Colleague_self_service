@@ -254,6 +254,7 @@ def refresh(output, refresh_date):
                 shutil.copy2(src_file, staging / filename)
                 print('Copied ' + filename + ' to temp.')
         
+        # Run join-catalogue.py script
         try:
             result = subprocess.run(
                 [sys.executable, '-u', str(ROOT / 'join-catalogue.py')], 
