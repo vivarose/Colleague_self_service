@@ -612,7 +612,7 @@
 
          <!-- Department Code Filter Dropdown Placeholder -->
          <div class="filter-group">
-           <label for="deptFilter">Department</label>
+           <label for="deptFilter">Subject</label>
            <select id="deptFilter">
              {{DEPT_OPTIONS_PLACEHOLDER}}
            </select>
@@ -633,6 +633,9 @@
          <div class="checkbox-group">
            <label><input type="checkbox" id="wiOnly"> Writing Intensive Only</label>
            <label><input type="checkbox" id="noPrereqOnly"> No Prerequisites Only</label>
+		   <label><input type="checkbox" id="hideFullCourses" checked> Hide Full (Closed) Courses</label>
+		   <label><input type="checkbox" id="includePe"> Show Physical Education</label>
+		   <label><input type="checkbox" id="hidespecial"> Hide special programs (NYC/DC/Co-Lab)</label>
          </div>
        </div>
 

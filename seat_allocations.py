@@ -1,5 +1,7 @@
 import re
 import warnings
+import pandas as pd
+
 
 
 SECTION = r'[A-Z]+-[A-Z0-9]+-\d+'
@@ -38,7 +40,7 @@ def parse_allocations(text):
             raise ValueError(f'Duplicate normalized seat allocation: {identity}')
         seen.add(key)
         if all(value.isdigit() for value in caps) and int(caps[0]) != sum(map(int, caps[1:])):
-            warnings.warn(f'Allocation sum differs from capacity for {identity}: {caps}', stacklevel=2)
+            print(f'Allocation sum differs from capacity for {identity}: {caps}')
         rows.append({
             'Subject Code': subject, 'Course Number': number, 'Section': section,
             **dict(zip(CAP_FIELDS, caps))
@@ -48,22 +50,47 @@ def parse_allocations(text):
     return rows
 
 
-def merge_allocations(schedule, seats):
-    schedule = schedule.copy()
-    seats = seats.copy()
-    for frame, number_column in ((schedule, 'Course Number+'), (seats, 'Course Number')):
+def merge_allocations(schedule_df, seats_df):
+    schedule = schedule_df.copy()
+    seats = seats_df.copy()
+    
+    for frame, number_column in ((schedule, 'Course Number+'), (seats, 'Course Number+')):
         frame['_allocation_key'] = [
             allocation_key(row['Subject Code'], row[number_column], row['Section'])
             for _, row in frame.iterrows()
         ]
+        
     if seats['_allocation_key'].duplicated().any():
         raise ValueError('Duplicate normalized seat allocation identities.')
+        
     schedule_keys = set(schedule['_allocation_key'])
     seat_keys = set(seats['_allocation_key'])
     print(f'Schedule sections without explicit allocations: {len(schedule_keys - seat_keys)}')
+    
     if seat_keys - schedule_keys:
         warnings.warn(f'PDF sections missing from schedule: {sorted(seat_keys - schedule_keys)}', stacklevel=2)
-    return schedule.merge(
+        
+    # 1. Execute the merge and store it in a variable
+    merged = schedule.merge(
         seats[['_allocation_key', *CAP_FIELDS]],
         on='_allocation_key', how='left', validate='many_to_one'
-    ).drop(columns='_allocation_key')
+    )
+    
+    # 2. Check for capacity mismatches
+    if 'MAXCAP' in merged.columns and 'Sec Capacity' in merged.columns:
+        # Convert to numeric to avoid string formatting false-positives (e.g., '18' vs 18.0)
+        max_cap = pd.to_numeric(merged['MAXCAP'], errors='coerce')
+        sec_cap = pd.to_numeric(merged['Sec Capacity'], errors='coerce')
+        
+        # Filter for rows where both values exist (not NaN) but are not equal
+        mismatches = merged[(max_cap.notna()) & (sec_cap.notna()) & (max_cap != sec_cap)]
+        
+        if not mismatches.empty:
+            mismatched_keys = mismatches['_allocation_key'].tolist()
+            warnings.warn(
+                f"Capacity mismatch ('MAXCAP' vs 'Sec Capacity') found in {len(mismatches)} section(s): {mismatched_keys}", 
+                stacklevel=2
+            )
+            
+    # 3. Drop the allocation key and return
+    return merged.drop(columns='_allocation_key')

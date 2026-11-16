@@ -21,20 +21,42 @@ import numpy as np
 import pandas as pd
 import os
 import warnings
+from parse_colls_prod_export import load_and_parse_colls_export, build_course_no
+import sys
+if sys.stdout.encoding.lower() != 'utf-8':
+    sys.stdout.reconfigure(encoding='utf-8')
+    
 warnings.filterwarnings('ignore', category=UserWarning, module='openpyxl')
 
 os.chdir(os.environ.get('CATALOG_INPUT_DIR', os.path.dirname(os.path.abspath(__file__))))
 
-# 1. Load the two files
+# 1. Load the files
+print('Loading files')
 schedule_df = pd.read_excel('courseschedule.xlsx')
 courses_df = pd.read_csv('courseExport.csv')
+colls_df = load_and_parse_colls_export('colls-prod-export.csv')
+
+try:
+    prev_df = pd.read_pickle('merged_course_schedule.pkl')
+    
+    # Drop duplicates
+    if 'COURSE_NO' in prev_df.columns:
+        prev_df = prev_df.drop_duplicates(subset=['COURSE_NO'], keep='first')
+    else:
+        # Fall back to alternative unique identifiers for older pickles
+        prev_df = prev_df.drop_duplicates(subset=['Subject Code', 'Course Number+', 'Section'], keep='first')
+except Exception as e:
+    print(f"⚠️ Error loading previous schedule: {e}")
+    prev_df = pd.DataFrame()
+    
+print('Files loaded. Cleaning up data.')
 
 # 2. Convert 'Course Number' in catalog to string for safe joining
 courses_df['Course Number'] = courses_df['Course Number'].astype(str).str.strip()
 courses_df['Subject Code'] = courses_df['Subject Code'].astype(str).str.strip()
 
 
-# Ensure 'Subject Name' column exists on final_df
+# Ensure 'Subject Name' column exists 
 if 'Subject Name' not in courses_df.columns:
     courses_df['Subject Name'] = np.nan
 
@@ -43,7 +65,47 @@ courses_df['Subject Name'] = np.where(
     courses_df['Subject Code'] == 'MUSIC', 'Music', courses_df['Subject Name+']
 )
 
+#%% If registration is currently happening, then schedule_df is showing MAXCAP 
+# only for current registering class
+
+# Save the currently adjusted (one-class) capacity to a new column
+schedule_df = schedule_df.rename(columns={'MAXCAP': 'current_capacity'})
+# Check schedule for duplicates
+duplicates = schedule_df[schedule_df.duplicated(subset=['COURSE_NO'], keep=False)]
+
+if not duplicates.empty:
+    print(f"⚠️ Found {len(duplicates)} rows of schedule_df with ambiguous section identities. Inspect these:")
+    # Display the columns that help identify the duplicates
+    cols_to_show = ['COURSE_NO']
+    if 'Course Name' in schedule_df.columns:
+        cols_to_show.append('Course Name')
+    elif 'TITLE' in schedule_df.columns:
+        cols_to_show.append('TITLE')
+        
+    print(duplicates[cols_to_show].sort_values(by=['Subject Code', 'Course Number+', 'Section']))
+
+# (schedule_df[schedule_df['INSTRUCTOR1'] == 'Merrill H'])[['Course Number+','MAXCAP']]
+
+# Merge the old 'Sec Capacity' into the new schedule_df
+if not prev_df.empty and 'MAXCAP' in prev_df.columns:
+    # Define the columns that uniquely identify a course section
+    # (Adjust these if your raw Excel file uses different column names for the section ID)
+    merge_keys = ['COURSE_NO']
+    
+    # Isolate only the keys and the column you want to pull over to avoid duplicating data
+    capacity_df = prev_df[merge_keys + ['MAXCAP']]
+    
+    # Left merge to keep all new courses while appending the old capacities
+    schedule_df = schedule_df.merge(capacity_df, on=merge_keys, how='left')
+    print('Intentionally using old capacities, from before the registrar started adjustments.')
+else:
+    # Fallback in case the pickle file is missing or empty
+    warnings.warn('Falling back')
+    schedule_df['MAXCAP'] = schedule_df['current_capacity']
+
 #%% Clean up courses_df
+
+from course_info_to_html import is_valid
 courses_df = courses_df.rename(columns={'Instructor': 'Usual instructor'})
 
 # 1. Split 'Course Number' values on '/' into lists (e.g., ['145', '245'])
@@ -54,6 +116,20 @@ courses_df['Course Number'] = (
 courses_df = courses_df.explode('Course Number').reset_index(drop=True)
 # 3. Strip any extra whitespace from the new course numbers
 courses_df['Course Number'] = courses_df['Course Number'].str.strip()
+
+# remove invalid course descriptions
+courses_df = courses_df[courses_df['Course Description'].apply(is_valid)]
+
+#%% Check courses_df for duplicates
+
+cols_to_compare = ['Subject Code', 'Course Number']
+duplicates_courses = courses_df[courses_df.duplicated(subset=cols_to_compare, keep=False)]
+if not duplicates_courses.empty:
+    print(f"⚠️ Found {len(duplicates)} rows of courses_df with ambiguous course identities. Inspect these:")
+    # Display the columns that help identify the duplicates
+    cols_to_show = cols_to_compare.copy()
+        
+    print(duplicates_courses[cols_to_show].sort_values(by=cols_to_compare))
 
 #%% Add period to end of schedule_df['COMMNENTS']
 
@@ -94,13 +170,15 @@ for col in time_cols:
 #print(schedule_df[['TIME1', 'TIME1-start', 'TIME1-end']].head())
 
 # Drop original TIME columns if you no longer need them
-schedule_df.drop(columns=time_cols, inplace=True)
+#schedule_df.drop(columns=time_cols, inplace=True)
 
 #%% 3. Extract 'Subject Code' and 'Course Number' from the schedule's 'COURSE_NO' column
 # Example: 'AFRST102 01' -> Subject: 'AFRST', Number: '102'
 extracted_keys = schedule_df['COURSE_NO'].astype(str).str.extract(
     r'([A-Za-z]+)\s*(\d+[A-Za-z]*)'
 )
+# Now extracted_keys is a dataframe with two columns: the subject codes and 
+# course number+
 schedule_df['Subject Code'] = extracted_keys[0].str.strip()
 schedule_df['Course Number+'] = extracted_keys[1].str.strip()
 
@@ -117,12 +195,115 @@ schedule_df['Course Number'] = (
     .str.strip()
 )
 
-# 4. Perform a left join keeping all rows from schedule_df, using indicator=True
-merged_df = schedule_df.merge(
+schedule_df['Section'] = schedule_df['COURSE_NO'].astype(str).str.extract(r'(\d+)\s*$')[0].str.strip()
+
+
+#%% Merge colls-prod-export and schedule_df
+
+JOIN_KEYS = ['Subject Code', 'Course Number+', 'Section']
+
+def normalize_section(val):
+    if pd.isna(val):
+        return ''
+    s = str(val).strip()
+    if s.endswith('.0'):
+        s = s[:-2]
+    return (s.lstrip('0') or '0') if s.isdigit() else s.upper()
+
+def prep_keys(df):
+    df = df.copy()
+    df['Subject Code'] = df['Subject Code'].fillna('').astype(str).str.strip().str.upper()
+    df['Course Number+'] = df['Course Number+'].fillna('').astype(str).str.strip().str.upper()
+    df['Section'] = df['Section'].apply(normalize_section)
+    return df
+
+schedule_clean = prep_keys(schedule_df)
+colls_clean = prep_keys(colls_df)
+
+# Flag any duplicate keys where availability or faculty actually differ
+dups = colls_df[colls_df.duplicated(subset=JOIN_KEYS, keep=False)]
+if not dups.empty:
+    conflicting = (
+        dups.groupby(JOIN_KEYS)[['Availability', 'Faculty', 'Status']]
+        .nunique(dropna=False)
+        .gt(1)
+        .any(axis=1)
+    )
+    if conflicting.any():
+        bad_keys = conflicting[conflicting].index.tolist()
+        raise AssertionError(f"Conflicting duplicate keys in colls_df: {bad_keys}")
+
+    print(f"Dropping {dups.duplicated(subset=JOIN_KEYS).sum()} identical duplicate rows from colls_df.")
+    colls_df = colls_df.drop_duplicates(subset=JOIN_KEYS, keep='last').reset_index(drop=True)
+
+assert not colls_df.duplicated(subset=JOIN_KEYS).any(), "Duplicate keys in colls_df"
+
+full_schedule_df = pd.merge(
+    schedule_clean,
+    colls_clean,
+    on=JOIN_KEYS,
+    how='outer',
+    suffixes=('_sched', '_colls'),
+    indicator='_merge_source',
+)
+
+# 1. Coalesce exact-name overlapping columns (prefer schedule_df, fallback to colls_df)
+shared_cols = [
+    'Writing-intensive', 'Course Number',
+    'DAY1', 'DAY2', 'DAY3',
+    'TIME1-start', 'TIME1-end', 'TIME2-start', 'TIME2-end',
+    'TIME3-start', 'TIME3-end', 'TIME4-start', 'TIME4-end',
+    'ROOM1', 'ROOM2', 'ROOM3', 'ROOM4',
+]
+for col in shared_cols:
+    full_schedule_df[col] = full_schedule_df[f'{col}_sched'].combine_first(full_schedule_df[f'{col}_colls'])
+    full_schedule_df.drop(columns=[f'{col}_sched', f'{col}_colls'], inplace=True)
+
+# 2. Backfill schedule_df columns expected by course_info_to_html.py for colls-only rows
+fallback_map = {
+    'TITLE': 'Title',
+    'CREDIT': 'Credits',
+    'TEACHINGMETHOD': 'Instructional Methods',
+    'COMMENTS': 'Comments',
+    'INSTRUCTOR1': 'Faculty',
+    'MAXCAP': 'Current Capacity',
+}
+for target_col, colls_col in fallback_map.items():
+    if colls_col in full_schedule_df.columns:
+        full_schedule_df[target_col] = full_schedule_df[target_col].combine_first(full_schedule_df[colls_col])
+
+
+
+#%% 4. Perform a left join keeping all rows from schedule_df, using indicator=True
+
+print('Adding course descriptions.')
+merged_df = full_schedule_df.merge(
     courses_df, on=['Subject Code', 'Course Number'], how='left', indicator=True
 )
 
-# Identify courses in schedule_df that were not found in courses_df
+#%% Fill in Course_No
+
+if 'COURSE_NO' not in merged_df.columns:
+    merged_df['COURSE_NO'] = pd.NA
+
+missing_mask = merged_df['COURSE_NO'].isna() | (
+    merged_df['COURSE_NO'].astype(str).str.strip().isin(['', 'nan', 'None'])
+)
+
+num_col = 'Course Number+' if 'Course Number+' in merged_df.columns else 'Course Number'
+
+merged_df.loc[missing_mask, 'COURSE_NO'] = merged_df.loc[missing_mask].apply(
+    lambda row: build_course_no(
+        row.get('Subject Code'),
+        row.get(num_col),
+        row.get('Section'),
+    ),
+    axis=1,
+)
+
+#%% Identify courses in schedule_df that were not found in courses_df
+
+print('Identifying missing course descriptions.')
 unmatched = merged_df[merged_df['_merge'] == 'left_only'][
     ['Subject Code', 'Course Number', 'COURSE_NO']
 ].drop_duplicates()
@@ -146,6 +327,27 @@ else:
 # Remove the temporary merge indicator column
 merged_df.drop(columns=['_merge'], inplace=True)
 
+#%% Check for duplicates
+
+
+df = merged_df
+
+# Create a temporary unique identifier for each section
+df['section_id'] = df['COURSE_NO'].astype(str) 
+
+# Find all rows where this identifier is duplicated
+duplicates = df[df.duplicated(subset=['section_id'], keep=False)]
+
+if not duplicates.empty:
+    print(f"⚠️ Found {len(duplicates)} rows with ambiguous section identities. Inspect these:")
+    # Display the columns that help identify the duplicates
+    cols_to_show = ['COURSE_NO']
+        
+    print(duplicates[cols_to_show])
+
+
+
+
 #%% Include class seat restrictions
 
 #%pip install requests pypdf
@@ -162,10 +364,22 @@ headers = {"User-Agent": "Mozilla/5.0"}
 if os.environ.get('CATALOG_SEATS_FILE'):
     with open(os.environ['CATALOG_SEATS_FILE'], 'rb') as seats_file:
         pdf_file = io.BytesIO(seats_file.read())
+    print('Using local pdf of class seat restrictions.\n')
 else:
+    # Download from the website
     response = requests.get(url, headers=headers, timeout=60)
     response.raise_for_status()
+    
+    # Save the downloaded content to a new file
+    save_path = "class-year-seats.pdf"
+    with open(save_path, 'wb') as f:
+        f.write(response.content)
+    
+    print(f'Downloaded and saved fresh pdf to {save_path}\n')
+    
+    # Keep the file in memory for the PdfReader
     pdf_file = io.BytesIO(response.content)
+    
 reader = PdfReader(pdf_file)
 
 pdf_text = ""
@@ -178,6 +392,7 @@ for page in reader.pages:
 from seat_allocations import parse_allocations, merge_allocations
 
 seats_df = pd.DataFrame(parse_allocations(pdf_text))
+seats_df = seats_df.rename(columns={'Course Number': 'Course Number+'})
 
 # 4. Ensure Section column exists on merged_df for exact section-level matching
 if 'Section' not in merged_df.columns:
@@ -185,6 +400,42 @@ if 'Section' not in merged_df.columns:
     merged_df['Section'] = merged_df['COURSE_NO'].astype(str).str.extract(r'(\d+)\s*$')[0].str.strip()
 
 final_df = merge_allocations(merged_df, seats_df)
+
+#%% Check for discrepancies between MAXCAP and Sec Capacity
+
+# 1. Safely convert 'Sec Capacity' to numeric (turns "" or text into NaN)
+sec_cap_numeric = pd.to_numeric(final_df['Sec Capacity'], errors='coerce')
+
+# 2. Create a mask checking for non-null values AND inequality
+mask = (
+    final_df['MAXCAP'].notna() & 
+    sec_cap_numeric.notna() & 
+    (final_df['MAXCAP'] != sec_cap_numeric)
+)
+
+check_me = final_df[mask].copy()
+
+# Reorder columns to make reviewing easier
+first_cols = ['Subject Code', 'Course Number+', 'Section', 'MAXCAP', 'Sec Capacity']
+
+# Collect all other existing columns in their original relative order
+#remaining_cols = [col for col in check_me.columns if col not in first_cols]
+
+# Combine and reorder the DataFrame
+check_me = check_me[first_cols]# + remaining_cols]
+
+# Print the DataFrame
+if not check_me.empty:
+    print('Discrepancies found between MAXCAP and Sec Capacity:\n')
+    print(check_me)
+else:
+    print('No discrepancies found between MAXCAP and Sec Capacity.')
+
+#%% Use the pdf values when available.
+
+print('Using pdf values for MAXCAP if available.')
+# Overwrite MAXCAP with Sec Capacity ONLY where they both exist and differ
+final_df.loc[mask, 'MAXCAP'] = sec_cap_numeric[mask]
 
 #%% Fix missing subject names
 # 1. Convert empty strings or whitespace-only cells to NaN
@@ -377,13 +628,45 @@ def determine_class_year_eligibility(row):
         interpretation = ", ".join([f"{v}" for k, v in text_status.items()])
         snippet_display = matched_snippet if matched_snippet else combined_text
         
-        print(f"🔍{course_id}", f"    \"{snippet_display}\"", f"    {interpretation}\n")
+        audit_string = (f"{course_id}    \"{snippet_display}\"    {interpretation}\n")
+        with open("audit_class_year_regex.txt", "a") as f:
+            f.write(audit_string)
 
     return pd.Series(text_status)
 
 # Apply evaluation function across DataFrame
+print('Determining class year exclusions with regular expressions.')
 year_cols = ['1st-years', '2nd-years', '3rd-years', '4th-years']
 final_df[year_cols] = final_df.apply(determine_class_year_eligibility, axis=1)
+
+#%% Mark if course has special corequisites
+
+# Ensure text columns are strings to avoid errors with .str accessor
+final_df['Course Name'] = final_df['Course Name'].fillna('')
+final_df['COMMENTS'] = final_df['COMMENTS'].fillna('')
+final_df['MAXCAP'] = pd.to_numeric(final_df['MAXCAP'], errors='coerce')
+
+# Define the filtering logic
+conditions = [
+    final_df['Course Name'].str.contains("Hamilton in New York City", case=False, na=False),
+    final_df['Course Name'].str.contains("Term in Washington", case=False, na=False),
+    final_df['COMMENTS'].str.contains("Justice Lab students only", case=False, na=False),
+    final_df['COMMENTS'].str.contains("Open to Co-Lab students only", case=False, na=False),
+    final_df['COMMENTS'].str.contains("Co-Lab", case=False, na=False) & (final_df['MAXCAP'] == 16)
+]
+
+# Define the corresponding Corequisites values
+choices = [
+    'NYC',
+    'DC',
+    'Co-Lab',
+    'Co-Lab',
+    'Co-Lab'
+]
+
+# Apply to a new column, defaulting to an empty string if no conditions are met
+final_df['Special Corequisites'] = np.select(conditions, choices, default='')
+print('Identified special corequisites')
 
 #%% Merge in URLs
 
@@ -410,6 +693,7 @@ def load_prior_year_availability(
     Parses Spring 2026 CSV and returns a dictionary mapping course section/base keys
     to historical enrollment stats.
     """
+    print('Loading prior year availability file')
     df_history = pd.read_csv(csv_path)
     
     ## Parse the availability data
@@ -484,7 +768,7 @@ final_df['Hist_Status'] = final_df['Offered_Last_Year'].map(
 )
 
 
-#%% Re-order the output and save
+#%% Re-order the output 
 # 1. Specify the desired leading columns
 first_cols = ['Subject Code', 'Course Number+', 'Section', 
               'TITLE', 'Course Name',  'CREDIT',
@@ -500,7 +784,7 @@ final_df = final_df[first_cols + remaining_cols]
 # Verify the updated column order
 #print(final_df.columns[:5].tolist())
 
-# Save the updated merged DataFrame
+#%% Save the updated merged DataFrame
 final_df.to_csv('merged_course_schedule.csv', index=False)
 final_df.to_pickle('merged_course_schedule.pkl')
 
@@ -508,3 +792,56 @@ print(f'Saved merged spreadsheet. Total rows: {len(final_df)}')
 print(os.getcwd())
 
 print(r'merged_course_schedule.csv / pkl');
+
+
+#%% Check for duplicates in any of the dataframes
+
+# pick which dataframe we are checking.
+df = prev_df
+
+if not df.empty:
+
+    # Fill missing 'Course Number+' with 'Course Number' to match the script's logic
+    course_nums = df['Course Number+'].fillna(df.get('Course Number', ''))
+    
+    # Create a temporary unique identifier for each section
+    df['section_id'] = df['Subject Code'].astype(str) + " " + course_nums.astype(str) + "-" + df['Section'].astype(str)
+    
+    # Find all rows where this identifier is duplicated
+    duplicates = df[df.duplicated(subset=['section_id'], keep=False)]
+    
+    if not duplicates.empty:
+        print(f"WARNING Found {len(duplicates)} rows with ambiguous section identities. Inspect these:")
+        # Display the columns that help identify the duplicates
+        cols_to_show = ['Subject Code', 'Course Number+', 'Section']
+        if 'Course Name' in df.columns:
+            cols_to_show.append('Course Name')
+        elif 'TITLE' in df.columns:
+            cols_to_show.append('TITLE')
+            
+        print(duplicates[cols_to_show].sort_values(by=['Subject Code', 'Course Number+', 'Section']))
+
+#%% Are unscheduled courses the courses admissions skips? Not quite.
+
+"""
+# 1. Normalize DAY1 to accurately catch all variations of "empty" 
+# (similar to the 'is_valid' function in your course_info_to_html.py script)
+day1_str = final_df['DAY1'].astype(str).str.strip().str.lower()
+no_schedule = final_df['DAY1'].isna() | day1_str.isin(['nan', 'none', 'null', ''])
+
+# 2. Identify courses merged as right_only
+is_right_only = final_df['_merge_source'] == 'right_only'
+
+# 3. Filter for anomalies: where the two conditions do NOT match
+anomalies = final_df[no_schedule != is_right_only]
+
+anomalies = anomalies[anomalies['Subject Code'] != 'PHYED']
+
+# 4. Display the results with the most relevant columns for debugging
+# (safely checking which naming conventions exist in the final_df)
+cols_to_show = ['Subject Code', 'Course Number', 'Course Number+', 'Course Name', 'TITLE', 'DAY1', '_merge_source']
+cols_to_show = [col for col in cols_to_show if col in anomalies.columns]
+
+print(f"Found {len(anomalies)} courses that break the pattern.")
+display(anomalies[cols_to_show])
+""";

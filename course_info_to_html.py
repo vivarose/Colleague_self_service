@@ -13,6 +13,11 @@ import re
 import pandas as pd
 import os
 import warnings
+import numpy as np
+from datetime import datetime
+import sys
+if sys.stdout.encoding.lower() != 'utf-8':
+    sys.stdout.reconfigure(encoding='utf-8')
 
 from catalogue_snapshot import build_snapshot, canonical_json, publish_snapshot, record_id
 
@@ -26,6 +31,7 @@ TEACHING_METHODS = {
     'LEC': None,
     'LEC,Final Exam': None,
     'LEC Final Exam': None,
+    'LEC LEC': None,
     'SEM': 'Seminar',
     'LAB': 'Laboratory',
     'IND': 'Independent Study',
@@ -85,6 +91,7 @@ SUBJECT_MAP = {
     'NEURO': 'Neuroscience',
     'PHIL': 'Philosophy',
     'PHYS': 'Physics',
+    'PHYED': 'Physical Education',
     'PPOL': 'Public Policy',
     'PSYCH': 'Psychology',
     'RELST': 'Religious Studies',
@@ -105,12 +112,12 @@ def build_dept_options(df, SUBJECT_MAP=SUBJECT_MAP):
         code_col = 'SUBJ'
         name_col = None
     else:
-        return '<option value="all">All Departments</option>'
+        return '<option value="all">All Subjects</option>'
 
     # Get sorted unique subject codes present in the dataframe
     unique_codes = sorted(df[code_col].dropna().unique())
 
-    options = ['<option value="all">All Departments</option>']
+    options = ['<option value="all">All Subjects</option>']
     for raw_code in unique_codes:
         code = str(raw_code).strip()
         if not code:
@@ -205,15 +212,30 @@ def clean_room(room_val):
 
 def clean_html(text):
     """Strip raw HTML tags and decode HTML entities."""
+    # I tried without this and it's really better with stripping.
+    
+    # Return an empty string immediately if the input is null, empty, or invalid
     if not is_valid(text):
         return ''
+        
+    # Convert HTML character entities (e.g., '&amp;', '&#39;') back into normal text characters
     text_unescaped = html.unescape(str(text))
+    
+    # Replace <br> or <br/> tags with a space so words on adjacent lines don't merge
     clean = re.sub(r'<br\s*/?>', ' ', text_unescaped)
+    
+    # Remove opening <p> tags entirely, including any attributes (like class or style)
     clean = re.sub(r'<p[^>]*>', '', clean)
+    
+    # Replace closing </p> tags with a space to maintain separation between paragraphs
     clean = re.sub(r'</p>', ' ', clean)
+    
+    # Strip out any other remaining HTML tags (e.g., <b>, <a>, <span>)
     clean = re.sub(r'<[^>]+>', '', clean)
+    
+    # Collapse multiple consecutive whitespace characters (spaces, tabs, newlines) into a single space, 
+    # and strip leading/trailing whitespace from the ends
     return re.sub(r'\s+', ' ', clean).strip()
-
 
 def clean_title(title_str):
     """Format titles nicely, preserving Roman numerals."""
@@ -285,7 +307,7 @@ def get_base_num(course_num):
     if not is_valid(course_num):
         return ''
     # Remove trailing L, W, or section suffixes
-    clean = re.sub(r'[LwLW]$', '', str(course_num).strip())
+    clean = re.sub(r'[a-zA-Z]+$', '', str(course_num).strip())
     return clean
 
 def group_courses_and_labs(rows):
@@ -296,10 +318,10 @@ def group_courses_and_labs(rows):
     # First Pass: Separate Main Courses and Lab Courses
     for row in rows:
         subj = str(row.get('Subject Code', '')).strip()
-        num_plus = str(row.get('Course Number+', row.get('Course Number', ''))).strip()
+        course_num = str(row.get('Course Number', row.get('Course Number+', ''))).strip()
         
-        is_lab = num_plus.endswith('L') # only look for labs affiliated with coursees
-        base_num = get_base_num(num_plus)
+        is_lab = course_num.endswith('L') # only look for labs affiliated with coursees
+        base_num = get_base_num(course_num)
         group_key = (subj, base_num)
 
         if is_lab:
@@ -310,6 +332,57 @@ def group_courses_and_labs(rows):
             parents.append((group_key, row))
 
     return parents, labs_by_key
+
+LAB_COREQ_RE = re.compile(
+    r'\b(?:[A-Za-z]{2,5}[\s-]?\d{3}L(?:-\w+)?|lab(?:oratory|s)?)\b',
+    re.IGNORECASE,
+)
+
+
+def _strip_lab_mentions(text):
+    """Removes sentences or comma-separated items that refer to lab sections."""
+    sentences = re.split(r'(?<=[.!?])\s+|;\s*', text)
+    kept_sentences = []
+
+    for sentence in sentences:
+        sentence = sentence.strip()
+        if not sentence:
+            continue
+
+        clauses = [c.strip() for c in sentence.split(',') if c.strip()]
+        kept_clauses = [c for c in clauses if not LAB_COREQ_RE.search(c)]
+
+        if kept_clauses:
+            rebuilt = ', '.join(kept_clauses)
+            rebuilt = re.sub(r'^(?:and|or)\s+', '', rebuilt, flags=re.IGNORECASE)
+            kept_sentences.append(rebuilt)
+
+    return ' '.join(kept_sentences).strip()
+
+
+def get_non_l_coreqs(special, coreq, narrative):
+    """Combines corequisites, prioritizing narrative over standard corequisites,
+    while stripping out co-requisite lab section references."""
+    parts = []
+
+    if is_valid(special):
+        cleaned_special = clean_html(special)
+        parts.append(cleaned_special)
+
+    # Prioritize Narrative over standard Corequisites
+    if is_valid(narrative):
+        cleaned_narr = _strip_lab_mentions(clean_html(narrative))
+        if cleaned_narr:
+            parts.append(cleaned_narr)
+    elif is_valid(coreq):
+        cleaned_coreq = _strip_lab_mentions(clean_html(coreq))
+        if cleaned_coreq:
+            parts.append(cleaned_coreq)
+
+    if not parts:
+        return None
+
+    return ' '.join(parts)
 
 def get_course_level(course_num):
     """Extracts the first digit of the course number to determine level (e.g., '146W' -> '100')."""
@@ -364,7 +437,7 @@ def build_historical_html(row):
     open_seats_display = f"{clean_num(open_seats)} remaining" if is_valid(open_seats) else "0 remaining"
 
     hist_info_html = \
-        f'''<p style="font-size: 12px; color: #57606a; margin: 8px 0;">
+        f'''<p style="font-size: 12px; margin: 8px 0;">
         <b>📊 Prior Term ({hist_term}):</b> 
         Fill Rate: <b style="color: #24292f;">{fill_display}</b> &bull; 
         Sections: <b style="color: #24292f;">{sections_display}</b> &bull; 
@@ -391,6 +464,15 @@ def display_course_info(data, mode='html'):
         raise TypeError(
             'Input must be a pandas DataFrame, Series, dict, or list of rows.'
         )
+        
+    # obtain date of Seats Taken info
+    csv_path = BASE_DIR / "colls-prod-export.csv"
+    if csv_path.exists():
+        dt = datetime.fromtimestamp(csv_path.stat().st_mtime).astimezone()
+        as_of_label = f" as of {dt.strftime('%b')} {dt.day}" # e.g., " as of Nov 12"
+        # source_updated_at = dt.isoformat(timespec="seconds")
+    else:
+        as_of_label = ""
 
     if mode.lower() == 'html':
         parents, labs_by_key = group_courses_and_labs(rows) # group labs with parent courses
@@ -495,9 +577,12 @@ def display_course_info(data, mode='html'):
                 sub_items.append(subj)
 
             cred = row.get('CREDIT')
-            if is_valid(cred):
-                c_val = clean_num(cred)
-                sub_items.append(f"{c_val} Credit{'s' if c_val != '1' else ''}")
+            c_val = clean_num(cred) if is_valid(cred) else ''
+            if c_val:
+                if subj == 'PHYED' and c_val == '0':
+                    sub_items.append('PE Credit (0 Academic Credits)')
+                else:
+                    sub_items.append(f"{c_val} Credit{'s' if c_val != '1' else ''}")
 
             tm = str(row.get('TEACHINGMETHOD', '')).strip()
             if is_valid(tm):
@@ -527,18 +612,29 @@ def display_course_info(data, mode='html'):
                     schedules.append(time_str)
 
             schedule_display = ' &nbsp;|&nbsp; '.join(schedules) if schedules else 'TBA'
-
-            instructors = []
-            for i in range(1, 5):
-                inst = str(row.get(f'INSTRUCTOR{i}', '')).strip()
-                if is_valid(inst) and inst not in instructors:
-                    instructors.append(inst)
-            instructor_display = ', '.join(instructors) if instructors else 'TBA'
+            
+            if is_valid(row.get('Faculty')):
+                instructor_display = row.get('Faculty')
+            else:
+                instructors = []
+                for i in range(1, 5):
+                    inst = str(row.get(f'INSTRUCTOR{i}', '')).strip()
+                    if is_valid(inst) and inst not in instructors:
+                        instructors.append(inst)
+                instructor_display = ', '.join(instructors) if instructors else 'TBA'
 
             cap_parts = []
-            max_cap = row.get('MAXCAP') or row.get('Sec Capacity')
+            max_cap = row.get('MAXCAP') or row.get('Sec Capacity') or row.get('current_capacity')
+            if np.isnan(max_cap):
+                max_cap = row.get('current_capacity')
+
             if is_valid(max_cap):
                 cap_parts.append(f'{clean_num(max_cap)} Seats')
+
+            seats_taken = row.get('Seats Taken')
+            if is_valid(seats_taken):
+                seats_taken = clean_num(seats_taken)
+                cap_parts.append(f'({seats_taken} taken' + as_of_label + ')')
 
             seat_breakdown = []
             for yr, label in [('Fr Cap', 'Fr'), ('So Cap', 'So'), ('Jr Cap', 'Jr'), ('Sr Cap', 'Sr')]:
@@ -553,18 +649,36 @@ def display_course_info(data, mode='html'):
 
             cross_list = row.get('Cross Listed Courses Narrative') or row.get('Cross Listed Courses')
             cross_display = str(cross_list).strip().strip(',') if is_valid(cross_list) else None
-
+            
             comments_display = clean_comments_notes(row.get('COMMENTS'), row.get('Notes'))
+            
+            # Generate the Non-L corequisites display string
+            non_l_coreq_display = get_non_l_coreqs(
+                row.get('Special Corequisites'),
+                row.get('Corequisites'),
+                row.get('Corequisite Narrative')
+            )
+            
+            is_special = str(is_valid(row.get('Special Corequisites'))).lower()
+            
+            # Identify if the course is full          
+            try:
+                is_full = 'true' if float(seats_taken) >= float(max_cap) else 'false'
+            except (ValueError, TypeError):
+                is_full = 'false'
                  
             ## BUILD THE CARD!
             card = [
                 (
                     f'<div class="course-card" data-subject="{subj}" data-level="{course_level}"'
+                    f' data-credits="{c_val}"'
                     f' data-record-ids="{record_ids_attribute}"'
                     f' data-days="{days_str}" data-start-min="{min_start}"'
                     f' data-end-min="{max_end}" data-wi="{is_wi}"'
                     f' data-has-prereq="{has_prereq}"'
                     f' data-slots="{slots_json_escaped}"'
+                    f' data-is-full="{is_full}"'
+                    f' data-is-special="{is_special}"' # true or false
                     f' data-1st-years="{yr1}" data-2nd-years="{yr2}"'
                     f' data-3rd-years="{yr3}" data-4th-years="{yr4}">'
                 ),
@@ -590,10 +704,18 @@ def display_course_info(data, mode='html'):
             
             if cross_display:
                 card.append(f'    <div>🔀 <b>Cross-listed:</b> {cross_display}</div>')
-            
             if prereq_display:
                 card.append(f'    <div>📋 <b>Prerequisites:</b> {prereq_display}</div>')
-            
+            if str(row.get('Subject Code', '')).strip() == 'PHYS': #special case
+                if str(row.get('Course Number_x')).strip() == '290':
+                    card.append('    <div>🤝 <b>Co-recommended:</b> Math 216 is useful for developing spherical coordinates, which are used for both the hydrogen atom and spherical harmonics. Math 216 is also recommended prior to taking Phys 295.</div>')
+                if str(row.get('Course Number_x')).strip() == '295':
+                    card.append('    <div>📋 <b>Pre-recommended:</b> MATH-216</div>')
+            if non_l_coreq_display:
+                if str(row.get('COURSE_NO', '')).strip() == 'HIST 340W01': #special case
+                    card.append(f'    <div>🤝 <b>Co-recommended:</b> {non_l_coreq_display}</div>')
+                else:
+                    card.append(f'    <div>🤝 <b>Corequisites:</b> {non_l_coreq_display}</div>')
             if comments_display:
                 card.append(f'    <div>💬 <b>Comments:</b> {comments_display}</div>')
             
@@ -632,7 +754,7 @@ def display_course_info(data, mode='html'):
                             lab_schedules.append(f"{d} {st}–{en}" + (f" @ {rm}" if rm else ""))
                     
                     lab_sched_str = " | ".join(lab_schedules) if lab_schedules else "TBA"
-                    lab_inst = lab.get('INSTRUCTOR1', 'TBA')
+                    lab_inst = lab.get('Faculty', lab.get('INSTRUCTOR1', 'TBA'))
                     lab_cap = clean_num(lab.get('MAXCAP') or lab.get('Sec Capacity', ''))
                     
                     card.append(f'''
@@ -713,8 +835,8 @@ if __name__ == '__main__':
             print("🎨 [1/3] Generating course HTML cards...")
             full_course_html = display_course_info(df)
     
-            # 2. Build department dropdown options string
-            print("🏢 [2/3] Building department dropdown menu options...")
+            # 2. Build Subject dropdown options string
+            print("🏢 [2/3] Building Subject dropdown menu options...")
             dept_options = build_dept_options(df)
     
             # 3. Replace all placeholders on template_text
@@ -723,8 +845,8 @@ if __name__ == '__main__':
                 template_text.replace('{{FULL_TEXT_PLACEHOLDER}}', full_course_html)
                 .replace('{{FILTER_JS_PLACEHOLDER}}', js_text)
                 .replace('{{DEPT_OPTIONS_PLACEHOLDER}}', dept_options)
-                .replace('{{CATALOG_METADATA_PLACEHOLDER}}', canonical_json(metadata).replace('<', '\\u003c'))
-                .replace('{{CATALOG_SNAPSHOT_PLACEHOLDER}}', canonical_json(snapshot).replace('<', '\\u003c'))
+                .replace('{{CATALOG_METADATA_PLACEHOLDER}}', json.dumps(metadata, indent=2, sort_keys=True).replace('<', '\\u003c'))
+                .replace('{{CATALOG_SNAPSHOT_PLACEHOLDER}}', json.dumps(snapshot, indent=2, sort_keys=True).replace('<', '\\u003c'))
                 .replace('{{CATALOG_TERM_LABEL_PLACEHOLDER}}', html.escape(CATALOG_TERM_LABEL_SHORT))
             )
     
@@ -751,3 +873,4 @@ if __name__ == '__main__':
         except Exception as e:
             print(f"❌ Error building courses.html: {e}")
             raise SystemExit(1) from e
+            

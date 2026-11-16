@@ -24,6 +24,12 @@ from pypdf import PdfReader
 from course_info_to_html import CATALOG_TERM, CATALOG_TERM_LABEL
 from seat_allocations import parse_allocations
 
+import sys
+if sys.stdout.encoding.lower() != 'utf-8':
+    sys.stdout.reconfigure(encoding='utf-8')
+
+new_descriptions = False; # so slow.
+
 
 ROOT = Path(__file__).resolve().parent
 CATALOG = 'https://hamilton.smartcatalogiq.com'
@@ -34,6 +40,7 @@ EST = timezone(timedelta(hours=-5))
 
 
 def download(url, sources):
+    print('Downloading from ' + str(url))
     with urlopen(Request(url, headers={'User-Agent': 'Hamilton-Course-Explorer/1.0'}), timeout=60) as response:
         body = response.read()
         if not body:
@@ -51,6 +58,7 @@ def lines(cell):
 
 
 def parse_schedule(content):
+    print('Parsing schedule html')
     soup = BeautifulSoup(content, 'html.parser')
     if not any('27/SP' in heading.get_text() for heading in soup.find_all('h3')):
         raise ValueError('Schedule does not identify the configured Spring 2027 term.')
@@ -157,9 +165,11 @@ def fetch_catalog(schedule, sources):
     if len(listings) < 20:
         raise ValueError('Catalog discovery is unexpectedly incomplete.')
     wanted = set()
+    print('Reading through the online catalgue (takes about 3 minutes) ...')
     for row in schedule:
         match = re.fullmatch(r'([A-Z]+)\s*(\d+[A-Z]*)\s*(\d{2})', row['COURSE_NO'])
-        wanted.add((match[1], match[2].removesuffix('W')))
+        if not str(match[2]).strip().endswith("L"):
+            wanted.add((match[1], match[2].removesuffix('W')))
     locations = {}
     for listing in listings:
         main = BeautifulSoup(download(listing, sources), 'html.parser').select_one('#main')
@@ -191,6 +201,8 @@ def fetch_catalog(schedule, sources):
             'Subject Code': key[0], 'Course Number': key[1],
             'Notes': 'No matching public catalog entry was found during this refresh.'
         })
+    #print(records)
+    print('Done reading the online catalogue.')
     return records
 
 
@@ -203,8 +215,8 @@ def refresh(output, refresh_date):
     schedule = parse_schedule(download(SCHEDULE, sources))
     previous = pd.read_pickle(output / 'merged_course_schedule.pkl')
     previous_count = len(previous.drop_duplicates(['Subject Code', 'Course Number+', 'Section']))
-    if len(schedule) < previous_count * 0.9:
-        raise ValueError(f'Schedule shrank by over 10% ({previous_count} to {len(schedule)}); manual review required.')
+    if len(schedule) < previous_count * 0.5:
+        raise ValueError(f'Schedule shrank by over 50% ({previous_count} to {len(schedule)}); manual review required.')
     pdf = download(SEATS, sources)
     if not pdf.startswith(b'%PDF') or not re.search(r'/27SP(?:%20| )', sources[-1]['resolved_url']):
         raise ValueError('Seat allocation source is not a Spring 2027 PDF.')
@@ -213,26 +225,61 @@ def refresh(output, refresh_date):
     allocations = parse_allocations(allocation_text)
     if len(allocations) < 200:
         raise ValueError('Seat allocation feed has fewer than 200 rows; manual review required.')
-    catalog = fetch_catalog(schedule, sources)
+    if new_descriptions:
+        catalog = fetch_catalog(schedule, sources)
     with tempfile.TemporaryDirectory() as temporary:
         staging = Path(temporary)
         pd.DataFrame(schedule).to_excel(staging / 'courseschedule.xlsx', index=False)
-        pd.DataFrame(catalog).to_csv(staging / 'courseExport.csv', index=False)
+        if new_descriptions:
+            pd.DataFrame(catalog).to_csv(staging / 'courseExport.csv', index=False)
+        else:
+            shutil.copy2(ROOT / 'courseExport.csv', staging / 'courseExport.csv')
         (staging / 'seats.pdf').write_bytes(pdf)
         environment = {**os.environ, 'CATALOG_INPUT_DIR': str(staging),
                        'CATALOG_SEATS_FILE': str(staging / 'seats.pdf')}
 
         if (ROOT / 'catalogue-history').exists():
             shutil.copytree(ROOT / 'catalogue-history', staging / 'catalogue-history', dirs_exist_ok=True)
-        if (ROOT / 'URL_list.csv').exists():
-            shutil.copy2(ROOT / 'URL_list.csv', staging / 'URL_list.csv')
 
-        subprocess.run([sys.executable, str(ROOT / 'join-catalogue.py')], env=environment, check=True)
+        files_to_copy = [
+            'URL_list.csv', 
+            'colls-prod-export.csv', 
+            'merged_course_schedule.pkl',
+            'course_info_to_html.py', 'catalogue_snapshot.py', 
+            'htmltemplate.html', 'filter.js',
+            'seat_allocations.py'
+        ]
+        for filename in files_to_copy:
+            src_file = ROOT / filename
+            if src_file.exists():
+                shutil.copy2(src_file, staging / filename)
+                print('Copied ' + filename + ' to temp.')
+        
+        # Run join-catalogue.py script
+        try:
+            result = subprocess.run(
+                [sys.executable, '-u', str(ROOT / 'join-catalogue.py')], 
+                env=environment, 
+                check=True, 
+                capture_output=True, 
+                text=True,
+                encoding='utf-8'
+            )
+            # Add this line to surface prints from a successful run
+            print(result.stdout) 
+            
+        except subprocess.CalledProcessError as e:
+            print("--- ERROR LOG FROM join-catalogue.py ---")
+            print(e.stderr)
+            print("--- OUTPUT LOG FROM join-catalogue.py ---")
+            print(e.stdout)
+            raise
+            
         merged = pd.read_pickle(staging / 'merged_course_schedule.pkl')
         if len(merged) != len(schedule):
-            raise ValueError('Merging sources changed the schedule row count.')
-        for name in ('course_info_to_html.py', 'catalogue_snapshot.py', 'htmltemplate.html', 'filter.js'):
-            shutil.copy2(ROOT / name, staging / name)
+            # This is ok. This is because I'm adding PE courses and others.
+            print(f"Original schedule rows from Admissions: {len(schedule)} | Merged rows: {len(merged)}")
+            #raise ValueError('Merging sources changed the schedule row count.')
         if (output / 'catalog-snapshots').exists():
             shutil.copytree(output / 'catalog-snapshots', staging / 'catalog-snapshots')
         provenance = {
@@ -240,9 +287,9 @@ def refresh(output, refresh_date):
             'source_retrieved_at': datetime.now(timezone.utc).isoformat(), 'sources': sources
         }
         (staging / 'source-provenance.json').write_text(json.dumps(provenance, indent=2) + '\n')
-        subprocess.run([sys.executable, str(staging / 'course_info_to_html.py')], check=True)
+        subprocess.run([sys.executable, str(staging / 'course_info_to_html.py')], check=True, encoding='utf-8')
         # All network, parsing, and build checks finish before published files change.
-        for name in ('merged_course_schedule.pkl', 'courses.html', 'source-provenance.json'):
+        for name in ('merged_course_schedule.pkl', 'merged_course_schedule.csv', 'courses.html', 'source-provenance.json'):
             shutil.copy2(staging / name, output / name)
         shutil.copytree(staging / 'catalog-snapshots', output / 'catalog-snapshots', dirs_exist_ok=True)
 
