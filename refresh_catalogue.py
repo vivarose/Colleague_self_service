@@ -246,7 +246,8 @@ def refresh(output, refresh_date):
             'colls-prod-export.csv', 
             'merged_course_schedule.pkl',
             'course_info_to_html.py', 'catalogue_snapshot.py', 
-            'htmltemplate.html', 'filter.js'
+            'htmltemplate.html', 'filter.js',
+            'seat_allocations.py'
         ]
         for filename in files_to_copy:
             src_file = ROOT / filename
