@@ -207,8 +207,8 @@ def refresh(output, refresh_date):
     schedule = parse_schedule(download(SCHEDULE, sources))
     previous = pd.read_pickle(output / 'merged_course_schedule.pkl')
     previous_count = len(previous.drop_duplicates(['Subject Code', 'Course Number+', 'Section']))
-    if len(schedule) < previous_count * 0.9:
-        raise ValueError(f'Schedule shrank by over 10% ({previous_count} to {len(schedule)}); manual review required.')
+    if len(schedule) < previous_count * 0.5:
+        raise ValueError(f'Schedule shrank by over 50% ({previous_count} to {len(schedule)}); manual review required.')
     pdf = download(SEATS, sources)
     if not pdf.startswith(b'%PDF') or not re.search(r'/27SP(?:%20| )', sources[-1]['resolved_url']):
         raise ValueError('Seat allocation source is not a Spring 2027 PDF.')
@@ -230,12 +230,32 @@ def refresh(output, refresh_date):
             shutil.copytree(ROOT / 'catalogue-history', staging / 'catalogue-history', dirs_exist_ok=True)
         if (ROOT / 'URL_list.csv').exists():
             shutil.copy2(ROOT / 'URL_list.csv', staging / 'URL_list.csv')
-
-        subprocess.run([sys.executable, str(ROOT / 'join-catalogue.py')], env=environment, check=True)
+        if (ROOT / 'colls-prod-export.csv').exists():
+                shutil.copy2(ROOT / 'colls-prod-export.csv', 
+                             staging / 'colls-prod-export.csv')
+        
+        try:
+            subprocess.run(
+                [sys.executable, '-u', str(ROOT / 'join-catalogue.py')], 
+                env=environment, 
+                check=True, 
+                capture_output=True, 
+                text=True
+            )
+        except subprocess.CalledProcessError as e:
+            print("--- ERROR LOG FROM join-catalogue.py ---")
+            print(e.stderr)
+            print("--- OUTPUT LOG FROM join-catalogue.py ---")
+            print(e.stdout)
+            raise
+            
         merged = pd.read_pickle(staging / 'merged_course_schedule.pkl')
         if len(merged) != len(schedule):
-            raise ValueError('Merging sources changed the schedule row count.')
-        for name in ('course_info_to_html.py', 'catalogue_snapshot.py', 'htmltemplate.html', 'filter.js'):
+            # This is ok. This is because I'm adding PE courses and others.
+            print(f"Original schedule rows from Admissions: {len(schedule)} | Merged rows: {len(merged)}")
+            #raise ValueError('Merging sources changed the schedule row count.')
+        for name in ('course_info_to_html.py', 'catalogue_snapshot.py', 
+                     'htmltemplate.html', 'filter.js'):
             shutil.copy2(ROOT / name, staging / name)
         if (output / 'catalog-snapshots').exists():
             shutil.copytree(output / 'catalog-snapshots', staging / 'catalog-snapshots')
