@@ -37,6 +37,7 @@ EST = timezone(timedelta(hours=-5))
 
 
 def download(url, sources):
+    print('Downloading from ' + str(url))
     with urlopen(Request(url, headers={'User-Agent': 'Hamilton-Course-Explorer/1.0'}), timeout=60) as response:
         body = response.read()
         if not body:
@@ -54,6 +55,7 @@ def lines(cell):
 
 
 def parse_schedule(content):
+    print('Parsing schedule html')
     soup = BeautifulSoup(content, 'html.parser')
     if not any('27/SP' in heading.get_text() for heading in soup.find_all('h3')):
         raise ValueError('Schedule does not identify the configured Spring 2027 term.')
@@ -160,6 +162,7 @@ def fetch_catalog(schedule, sources):
     if len(listings) < 20:
         raise ValueError('Catalog discovery is unexpectedly incomplete.')
     wanted = set()
+    print('Reading through the online catalgue (takes about 3 minutes) ...')
     for row in schedule:
         match = re.fullmatch(r'([A-Z]+)\s*(\d+[A-Z]*)\s*(\d{2})', row['COURSE_NO'])
         if not str(match[2]).strip().endswith("L"):
@@ -195,6 +198,8 @@ def fetch_catalog(schedule, sources):
             'Subject Code': key[0], 'Course Number': key[1],
             'Notes': 'No matching public catalog entry was found during this refresh.'
         })
+    #print(records)
+    print('Done reading the online catalogue.')
     return records
 
 
