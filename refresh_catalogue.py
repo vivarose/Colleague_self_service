@@ -28,6 +28,9 @@ import sys
 if sys.stdout.encoding.lower() != 'utf-8':
     sys.stdout.reconfigure(encoding='utf-8')
 
+new_descriptions = False; # so slow.
+
+
 ROOT = Path(__file__).resolve().parent
 CATALOG = 'https://hamilton.smartcatalogiq.com'
 SCHEDULE = 'https://www.hamilton.edu/admission/visiting/courses/printable-schedule?term=27%2FSP'
@@ -222,11 +225,15 @@ def refresh(output, refresh_date):
     allocations = parse_allocations(allocation_text)
     if len(allocations) < 200:
         raise ValueError('Seat allocation feed has fewer than 200 rows; manual review required.')
-    catalog = fetch_catalog(schedule, sources)
+    if new_descriptions:
+        catalog = fetch_catalog(schedule, sources)
     with tempfile.TemporaryDirectory() as temporary:
         staging = Path(temporary)
         pd.DataFrame(schedule).to_excel(staging / 'courseschedule.xlsx', index=False)
-        pd.DataFrame(catalog).to_csv(staging / 'courseExport.csv', index=False)
+        if new_descriptions:
+            pd.DataFrame(catalog).to_csv(staging / 'courseExport.csv', index=False)
+        else:
+            shutil.copy2(ROOT / 'courseExport.csv', staging / 'courseExport.csv')
         (staging / 'seats.pdf').write_bytes(pdf)
         environment = {**os.environ, 'CATALOG_INPUT_DIR': str(staging),
                        'CATALOG_SEATS_FILE': str(staging / 'seats.pdf')}
