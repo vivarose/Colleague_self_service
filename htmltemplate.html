@@ -19,6 +19,8 @@
   --warning-text: #573600;
   --btn-bg: #f3f4f6;
   --btn-hover: #e5e7eb;
+  --quietgrey: #6e7781;
+  --quietnotable: #24292f;
 }
 
 [data-theme="dark"] {
@@ -35,6 +37,8 @@
   --warning-text: #e5c07b;
   --btn-bg: #21262d;
   --btn-hover: #30363d;
+  --quietgrey: #6e7781;
+  --quietnotable: #24292f;
 }
  body {
    font-family: 'Segoe UI', Arial, sans-serif;
@@ -189,6 +193,16 @@
   border-left: 4px solid #002f6c;
   padding: 10px 14px;
   border-radius: 0 6px 6px 0;
+}
+
+.quietgrey {
+  color: var(--quietgrey);
+}
+
+.quietnotable {
+	font-size: 12px;
+  font-weight: bold;
+  color: var(--quietnotable);
 }
 
 /* Lab Section Overrides */
