@@ -38,8 +38,15 @@ colls_df = load_and_parse_colls_export('colls-prod-export.csv')
 
 try:
     prev_df = pd.read_pickle('merged_course_schedule.pkl')
-    prev_df = prev_df.drop_duplicates(subset=['COURSE_NO'], keep='first')
-except:
+    
+    # Drop duplicates
+    if 'COURSE_NO' in prev_df.columns:
+        prev_df = prev_df.drop_duplicates(subset=['COURSE_NO'], keep='first')
+    else:
+        # Fall back to alternative unique identifiers for older pickles
+        prev_df = prev_df.drop_duplicates(subset=['Subject Code', 'Course Number+', 'Section'], keep='first')
+except Exception as e:
+    print(f"⚠️ Error loading previous schedule: {e}")
     prev_df = pd.DataFrame()
     
 print('Files loaded. Cleaning up data.')
