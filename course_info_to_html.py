@@ -437,7 +437,7 @@ def build_historical_html(row):
     open_seats_display = f"{clean_num(open_seats)} remaining" if is_valid(open_seats) else "0 remaining"
 
     hist_info_html = \
-        f'''<p style="font-size: 12px; color: #57606a; margin: 8px 0;">
+        f'''<p style="font-size: 12px; margin: 8px 0;">
         <b>📊 Prior Term ({hist_term}):</b> 
         Fill Rate: <b style="color: #24292f;">{fill_display}</b> &bull; 
         Sections: <b style="color: #24292f;">{sections_display}</b> &bull; 
