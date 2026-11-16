@@ -159,7 +159,8 @@ def fetch_catalog(schedule, sources):
     wanted = set()
     for row in schedule:
         match = re.fullmatch(r'([A-Z]+)\s*(\d+[A-Z]*)\s*(\d{2})', row['COURSE_NO'])
-        wanted.add((match[1], match[2].removesuffix('W')))
+        if not str(match[2]).strip().endswith("L"):
+            wanted.add((match[1], match[2].removesuffix('W')))
     locations = {}
     for listing in listings:
         main = BeautifulSoup(download(listing, sources), 'html.parser').select_one('#main')
