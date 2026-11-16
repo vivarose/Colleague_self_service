@@ -422,9 +422,7 @@ def build_historical_html(row):
     # Return fallback if no metrics are present
     if fill_rate is None and enrolled is None and capacity is None:
         if is_valid(hist_offered):
-            return f'''<div style="margin-top: 12px; padding: 8px 12px; background-color: #f6f8fa; border: 1px solid #e1e4e8; border-radius: 6px; font-size: 12px; color: #57606a;">
-    📊 <b>{hist_term} History:</b> <span class = "quietgrey">Was not offered in {hist_term}</span>
-  </div>'''
+            return f'''<div class="quietgrey">Was not offered in {hist_term}</div>'''
         return None
 
     # Format values
