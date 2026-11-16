@@ -97,6 +97,7 @@ if not prev_df.empty and 'MAXCAP' in prev_df.columns:
     
     # Left merge to keep all new courses while appending the old capacities
     schedule_df = schedule_df.merge(capacity_df, on=merge_keys, how='left')
+    print('Intentionally using old capacities, from before the registrar started adjustments.')
 else:
     # Fallback in case the pickle file is missing or empty
     warnings.warn('Falling back')
