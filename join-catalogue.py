@@ -27,6 +27,7 @@ warnings.filterwarnings('ignore', category=UserWarning, module='openpyxl')
 os.chdir(os.environ.get('CATALOG_INPUT_DIR', os.path.dirname(os.path.abspath(__file__))))
 
 # 1. Load the files
+print('Loading files')
 schedule_df = pd.read_excel('courseschedule.xlsx')
 courses_df = pd.read_csv('courseExport.csv')
 colls_df = load_and_parse_colls_export('colls-prod-export.csv')
@@ -36,6 +37,8 @@ try:
     prev_df = prev_df.drop_duplicates(subset=['COURSE_NO'], keep='first')
 except:
     prev_df = pd.DataFrame()
+    
+print('Files loaded. Cleaning up data.')
 
 # 2. Convert 'Course Number' in catalog to string for safe joining
 courses_df['Course Number'] = courses_df['Course Number'].astype(str).str.strip()
@@ -260,6 +263,8 @@ for target_col, colls_col in fallback_map.items():
 
 
 #%% 4. Perform a left join keeping all rows from schedule_df, using indicator=True
+
+print('Adding course descriptions.')
 merged_df = full_schedule_df.merge(
     courses_df, on=['Subject Code', 'Course Number'], how='left', indicator=True
 )
@@ -285,6 +290,8 @@ merged_df.loc[missing_mask, 'COURSE_NO'] = merged_df.loc[missing_mask].apply(
 )
 
 #%% Identify courses in schedule_df that were not found in courses_df
+
+print('Identifying missing course descriptions.')
 unmatched = merged_df[merged_df['_merge'] == 'left_only'][
     ['Subject Code', 'Course Number', 'COURSE_NO']
 ].drop_duplicates()
@@ -309,6 +316,8 @@ else:
 merged_df.drop(columns=['_merge'], inplace=True)
 
 #%% Check for duplicates
+
+
 df = merged_df
 
 # Create a temporary unique identifier for each section
@@ -343,10 +352,22 @@ headers = {"User-Agent": "Mozilla/5.0"}
 if os.environ.get('CATALOG_SEATS_FILE'):
     with open(os.environ['CATALOG_SEATS_FILE'], 'rb') as seats_file:
         pdf_file = io.BytesIO(seats_file.read())
+    print('Using local pdf of class seat restrictions.\n')
 else:
+    # Download from the website
     response = requests.get(url, headers=headers, timeout=60)
     response.raise_for_status()
+    
+    # Save the downloaded content to a new file
+    save_path = "class-year-seats.pdf"
+    with open(save_path, 'wb') as f:
+        f.write(response.content)
+    
+    print(f'Downloaded and saved fresh pdf to {save_path}\n')
+    
+    # Keep the file in memory for the PdfReader
     pdf_file = io.BytesIO(response.content)
+    
 reader = PdfReader(pdf_file)
 
 pdf_text = ""
@@ -386,15 +407,21 @@ check_me = final_df[mask].copy()
 first_cols = ['Subject Code', 'Course Number+', 'Section', 'MAXCAP', 'Sec Capacity']
 
 # Collect all other existing columns in their original relative order
-remaining_cols = [col for col in check_me.columns if col not in first_cols]
+#remaining_cols = [col for col in check_me.columns if col not in first_cols]
 
 # Combine and reorder the DataFrame
-check_me = check_me[first_cols + remaining_cols]
+check_me = check_me[first_cols]# + remaining_cols]
 
 # Print the DataFrame
-print(check_me)
+if not check_me.empty:
+    print('Discrepancies found between MAXCAP and Sec Capacity:\n')
+    print(check_me)
+else:
+    print('No discrepancies found between MAXCAP and Sec Capacity.')
 
 #%% Use the pdf values when available.
+
+print('Using pdf values for MAXCAP if available.')
 # Overwrite MAXCAP with Sec Capacity ONLY where they both exist and differ
 final_df.loc[mask, 'MAXCAP'] = sec_cap_numeric[mask]
 
@@ -589,11 +616,14 @@ def determine_class_year_eligibility(row):
         interpretation = ", ".join([f"{v}" for k, v in text_status.items()])
         snippet_display = matched_snippet if matched_snippet else combined_text
         
-        print(f"🔍{course_id}", f"    \"{snippet_display}\"", f"    {interpretation}\n")
+        audit_string = (f"{course_id}    \"{snippet_display}\"    {interpretation}\n")
+        with open("audit_class_year_regex.txt", "a") as f:
+            f.write(audit_string)
 
     return pd.Series(text_status)
 
 # Apply evaluation function across DataFrame
+print('Determining class year exclusions with regular expressions.')
 year_cols = ['1st-years', '2nd-years', '3rd-years', '4th-years']
 final_df[year_cols] = final_df.apply(determine_class_year_eligibility, axis=1)
 
@@ -624,7 +654,7 @@ choices = [
 
 # Apply to a new column, defaulting to an empty string if no conditions are met
 final_df['Special Corequisites'] = np.select(conditions, choices, default='')
-
+print('Identified special corequisites')
 
 #%% Merge in URLs
 
@@ -651,6 +681,7 @@ def load_prior_year_availability(
     Parses Spring 2026 CSV and returns a dictionary mapping course section/base keys
     to historical enrollment stats.
     """
+    print('Loading prior year availability file')
     df_history = pd.read_csv(csv_path)
     
     ## Parse the availability data
@@ -751,8 +782,9 @@ print(os.getcwd())
 print(r'merged_course_schedule.csv / pkl');
 
 
-#%% Check for duplicates
+#%% Check for duplicates in any of the dataframes
 
+# pick which dataframe we are checking.
 df = prev_df
 
 # Fill missing 'Course Number+' with 'Course Number' to match the script's logic

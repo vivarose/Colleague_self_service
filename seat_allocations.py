@@ -40,7 +40,7 @@ def parse_allocations(text):
             raise ValueError(f'Duplicate normalized seat allocation: {identity}')
         seen.add(key)
         if all(value.isdigit() for value in caps) and int(caps[0]) != sum(map(int, caps[1:])):
-            warnings.warn(f'Allocation sum differs from capacity for {identity}: {caps}', stacklevel=2)
+            print(f'Allocation sum differs from capacity for {identity}: {caps}')
         rows.append({
             'Subject Code': subject, 'Course Number': number, 'Section': section,
             **dict(zip(CAP_FIELDS, caps))
