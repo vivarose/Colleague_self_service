@@ -585,6 +585,7 @@
           <div class="header-actions">
 			<button class="shuffle-btn" onclick="shuffleCourses()" title="Randomize course display order">🔀 Shuffle</button>
             <button type="button" class="shuffle-btn" onclick="printCourseBooklet()" title="Print selected courses grouped by department">🖨️ Print</button>
+			<button class="shuffle-btn" id="themeToggle" title="Toggle Dark Mode">🌙 Dark</button>
 			<span class="counter-badge" id="courseCounter">Loading...</span>
 		  </div>
 		</div>
@@ -20122,7 +20123,7 @@
  <article id="courseBooklet" aria-label="Filtered course booklet"></article>
 
 <script type="application/json" id="catalogMetadata">{
-  "generated_at": "2026-11-16T15:21:12.051316+00:00",
+  "generated_at": "2026-11-16T15:28:31.466170+00:00",
   "identity_issues": [],
   "refresh_date": "2026-11-15",
   "schema_version": 1,
@@ -20135,7 +20136,7 @@
   "term_label": "Spring 2027"
 }</script>
  <script type="application/json" id="catalogSnapshot">{
-  "generated_at": "2026-11-16T15:21:12.051316+00:00",
+  "generated_at": "2026-11-16T15:28:31.466170+00:00",
   "identity_issues": [],
   "records": [
     {
@@ -105808,5 +105809,28 @@ if (typeof module !== 'undefined' && module.exports) {
   module.exports = { compareCatalogSnapshots, validateBookletBaseline };
 }
  </script>
+ <script>
+  const themeToggleBtn = document.getElementById('themeToggle');
+  
+  // Check local storage or system preference
+  const currentTheme = localStorage.getItem('theme') || 
+    (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    
+  if (currentTheme === 'dark') {
+    document.documentElement.setAttribute('data-theme', 'dark');
+  }
+
+  // Toggle logic
+  themeToggleBtn.addEventListener('click', () => {
+    let theme = document.documentElement.getAttribute('data-theme');
+    if (theme === 'dark') {
+      document.documentElement.removeAttribute('data-theme');
+      localStorage.setItem('theme', 'light');
+    } else {
+      document.documentElement.setAttribute('data-theme', 'dark');
+      localStorage.setItem('theme', 'dark');
+    }
+  });
+</script>
 </body>
 </html>
