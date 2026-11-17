@@ -24,24 +24,38 @@
   --primary-color: #002f6c;
   --surface-subtle: #f6f8fa;
   --surface-color2: #f0f4f8;
+  --disclaimer-strong-color: #3b2300; 
+  --filter-grid-top-border: #e1e4e8;
+  --busy-chip-bg: #ffebe9;
+  --busy-chip-border: #ffc1c0;
+  --busy-chip: #cf222e;
+  --hide-btn-color: #cf222e;
 }
 
 [data-theme="dark"] {
-  --bg-color: #0d1117;
-  --surface-color: #161b22;
-  --text-main: #c9d1d9;
-  --text-muted: #8b949e;
-  --primary-color: #58a6ff;
-  --primary-hover: #79c0ff;
-  --border-color: #30363d;
-  --shadow-color: rgba(0,0,0,0.4);
-  --warning-bg: #2d2611;
-  --warning-border: #9e6a03;
-  --warning-text: #e5c07b;
-  --btn-bg: #21262d;
-  --btn-hover: #30363d;
-  --quietgrey: #6e7781;
-  --quietnotable: #24292f;
+  --bg-color: #070d17;
+  --surface-color: #0e1726;
+  --surface-subtle: #131f33;
+  --surface-color2: #17253d;
+  --text-main: #e2e8f0;
+  --text-muted: #94a3b8;
+  --quietgrey: #64748b;
+  --quietnotable: #f1f5f9;
+  --primary-color: #60a5fa;
+  --primary-hover: #93c5fd;
+  --border-color: #1e2d45;
+  --filter-grid-top-border: #1a273d;
+  --shadow-color: rgba(2, 6, 15, 0.55);
+  --btn-bg: #152238;
+  --btn-hover: #1e3150;
+  --warning-bg: #292111;
+  --warning-border: #a16207;
+  --warning-text: #fde68a;
+  --disclaimer-strong-color: #fef3c7;
+  --busy-chip-bg: #35151c;
+  --busy-chip-border: #881337;
+  --busy-chip: #fda4af;
+  --hide-btn-color: #fb7185;
 }
  body {
    font-family: 'Segoe UI', Arial, sans-serif;
@@ -69,8 +83,17 @@
    gap: 10px;
  }
  .warning-banner strong {
-   color: #3b2300;
+   color: var(--disclaimer-strong-color)
  }
+ .warning-banner a {
+  color: var(--warning-text);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.warning-banner a:hover {
+  opacity: 0.8;
+}
  .filter-panel {
    background: var(--surface-color);
    border: 1px solid var(--border-color);
@@ -117,7 +140,15 @@
   gap: 4px;
 }
 
-.filter-group input, .filter-group select): Add background-color: var(--bg-color); color: var(--text-main);
+.filter-group input, .filter-group select {
+  padding: 7px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 13px;
+  outline: none;
+  background-color: var(--bg-color);
+  color: var(--text-main);
+}
 
 .shuffle-btn:hover {
   background: var(--btn-hover);
@@ -169,7 +200,7 @@
   border-radius: 4px;
   padding: 2px 8px;
   font-size: 12px;
-  color: #cf222e;
+  color: var(--hide-btn-color);
   cursor: pointer;
   font-weight: 600;
 }
@@ -273,7 +304,7 @@
    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
    gap: 12px;
    padding-top: 10px;
-   border-top: 1px solid #e1e4e8;
+   border-top: 1px solid var(--filter-grid-top-border);
  }
  .filter-group {
    display: flex;
@@ -329,7 +360,7 @@
    outline: none;
  }
  .conflict-summary:hover {
-   color: #001f48;
+   color: var(--primary-hover);
  }
  .day-checkboxes {
    display: flex;
@@ -365,7 +396,7 @@
    transition: background 0.2s;
  }
  .btn-add:hover {
-   background-color: #001f48;
+   background-color: var(--primary-hover);
  }
  .busy-list {
    display: flex;
@@ -374,9 +405,9 @@
    margin-top: 6px;
  }
  .busy-chip {
-   background: #ffebe9;
-   border: 1px solid #ffc1c0;
-   color: #cf222e;
+   background: var(--busy-chip-bg);
+   border: 1px solid var(--busy-chip-border); 
+   color: var(--busy-chip);
    padding: 4px 10px;
    border-radius: 16px;
    font-size: 12px;
@@ -388,7 +419,7 @@
  .busy-chip .remove-btn {
    cursor: pointer;
    font-weight: bold;
-   color: #cf222e;
+   color: var(--busy-chip);
    border: none;
    background: none;
    padding: 0;
@@ -416,7 +447,7 @@
    text-align: center;
    margin-top: 10px;
    padding: 6px 0 2px 0;
-   border-top: 1px solid #e1e4e8;
+   border-top: 1px solid var(--filter-grid-top-border);
    cursor: pointer;
    color: var(--primary-color);
    font-size: 13px;
@@ -429,7 +460,7 @@
    gap: 6px;
  }
  .panel-toggle-bar:hover {
-   color: #001f48;
+   color: var(--primary-hover);
    background-color: var(--surface-subtle);
    border-radius: 0 0 6px 6px;
  }
@@ -20142,7 +20173,7 @@
  <article id="courseBooklet" aria-label="Filtered course booklet"></article>
 
 <script type="application/json" id="catalogMetadata">{
-  "generated_at": "2026-11-17T00:00:46.659461+00:00",
+  "generated_at": "2026-11-17T00:42:27.334387+00:00",
   "identity_issues": [],
   "refresh_date": "2026-11-15",
   "schema_version": 1,
@@ -20155,7 +20186,7 @@
   "term_label": "Spring 2027"
 }</script>
  <script type="application/json" id="catalogSnapshot">{
-  "generated_at": "2026-11-17T00:00:46.659461+00:00",
+  "generated_at": "2026-11-17T00:42:27.334387+00:00",
   "identity_issues": [],
   "records": [
     {
