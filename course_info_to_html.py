@@ -409,7 +409,7 @@ def build_historical_html(row):
 
     # Status when course was not offered in the prior term
     if hist_offered is False or str(hist_offered).strip().lower() in ['false', 'no', '0', 'not offered']:
-        return f'''<div><span style="color: #6e7781;">Was not offered in {hist_term}</span></div>'''
+        return f'''<div class="quietgrey">Was not offered in {hist_term}</div>'''
 
     # Extract metrics safely from dataframe row
     fill_rate = row.get('Hist_Fill_Rate')
@@ -422,9 +422,7 @@ def build_historical_html(row):
     # Return fallback if no metrics are present
     if fill_rate is None and enrolled is None and capacity is None:
         if is_valid(hist_offered):
-            return f'''<div style="margin-top: 12px; padding: 8px 12px; background-color: #f6f8fa; border: 1px solid #e1e4e8; border-radius: 6px; font-size: 12px; color: #57606a;">
-    📊 <b>{hist_term} History:</b> <span style="color: #6e7781;">Not offered in {hist_term}</span>
-  </div>'''
+            return f'''<div class="quietgrey">Was not offered in {hist_term}</div>'''
         return None
 
     # Format values
@@ -439,10 +437,10 @@ def build_historical_html(row):
     hist_info_html = \
         f'''<p style="font-size: 12px; margin: 8px 0;">
         <b>📊 Prior Term ({hist_term}):</b> 
-        Fill Rate: <b style="color: #24292f;">{fill_display}</b> &bull; 
-        Sections: <b style="color: #24292f;">{sections_display}</b> &bull; 
-        Waitlist: <b style="color: #24292f;">{waitlist_display}</b> &bull; 
-        Open Seats: <b style="color: #24292f;">{open_seats_display}</b>
+        Fill Rate: <span class="quietnotable">{fill_display}</span> &bull; 
+        Sections: <span class="quietnotable">{sections_display}</span> &bull; 
+        Waitlist: <span class="quietnotable">{waitlist_display}</span> &bull; 
+        Open Seats: <span class="quietnotable">{open_seats_display}</span>
         </p>'''
 
     return hist_info_html
