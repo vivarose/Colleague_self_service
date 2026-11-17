@@ -210,7 +210,7 @@ def clean_room(room_val):
     return r
 
 
-def clean_html(text):
+def clean_html(text, context=""):
     """Strip raw HTML tags and decode HTML entities."""
     # I tried without this and it's really better with stripping.
     
@@ -233,9 +233,16 @@ def clean_html(text):
     # Strip out any other remaining HTML tags (e.g., <b>, <a>, <span>)
     clean = re.sub(r'<[^>]+>', '', clean)
     
-    # Collapse multiple consecutive whitespace characters (spaces, tabs, newlines) into a single space, 
-    # and strip leading/trailing whitespace from the ends
-    return re.sub(r'\s+', ' ', clean).strip()
+    # Fix missing space after a comma when followed immediately by a letter
+    fixed_commas = re.sub(r',([a-zA-Z])', r', \1', clean)
+    
+    # Display a message whenever a comma spacing fix occurs
+    if fixed_commas != clean:
+        matches = re.findall(r'\b\w+,[a-zA-Z]\w*\b', clean)
+        label = f"[{context}] " if context else ""
+        print(f"🔧 Comma space fixed {label}-> {matches}")
+        
+    return re.sub(r'\s+', ' ', fixed_commas).strip()
 
 def clean_title(title_str):
     """Format titles nicely, preserving Roman numerals."""
