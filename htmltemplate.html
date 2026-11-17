@@ -21,6 +21,9 @@
   --btn-hover: #e5e7eb;
   --quietgrey: #6e7781;
   --quietnotable: #24292f;
+  --primary-color: #002f6c;
+  --surface-subtle: #f6f8fa;
+  --surface-color2: #f0f4f8;
 }
 
 [data-theme="dark"] {
@@ -97,7 +100,7 @@
  .filter-title-group h2 {
    margin: 0;
    font-size: 18px;
-   color: #002f6c;
+   color: var(--primary-color);
  }
  .shuffle-btn {
   background: var(--btn-bg);
@@ -106,13 +109,15 @@
   padding: 4px 10px;
   font-size: 12px;
   font-weight: 600;
-  color: #002f6c;
+  color: var(--primary-color);
   cursor: pointer;
   transition: background 0.2s, transform 0.1s;
   display: inline-flex;
   align-items: center;
   gap: 4px;
 }
+
+.filter-group input, .filter-group select): Add background-color: var(--bg-color); color: var(--text-main);
 
 .shuffle-btn:hover {
   background: var(--btn-hover);
@@ -135,7 +140,7 @@
 
 /* Card Header Section */
 .card-header-flex {
-  border-bottom: 2px solid #002f6c;
+  border-bottom: 2px solid var(--primary-color);
   padding-bottom: 8px;
   margin-bottom: 14px;
   display: flex;
@@ -145,7 +150,7 @@
 
 .card-title {
   margin: 0;
-  color: #002f6c;
+  color: var(--primary-color);
   font-size: 19px;
   font-weight: 700;
 }
@@ -189,8 +194,8 @@
   font-size: 14px;
   color: var(--text-main);
   line-height: 1.6;
-  background-color: #f6f8fa;
-  border-left: 4px solid #002f6c;
+  background-color: var(--surface-subtle);
+  border-left: 4px solid var(--primary-color);
   padding: 10px 14px;
   border-radius: 0 6px 6px 0;
 }
@@ -209,13 +214,13 @@
 .nested-labs-container {
   margin-top: 15px;
   padding: 12px;
-  background-color: #f0f4f8;
+  background-color: var(--surface-color2);
   border-radius: 6px;
   border: 1px solid var(--border-color);
 }
 
 .lab-title-text {
-  color: #002f6c;
+  color: var(--primary-color);
   font-size: 13px;
 }
 
@@ -223,7 +228,7 @@
   margin-top: 8px;
   padding: 10px;
   background: var(--surface-color);
-  border-left: 3px solid #002f6c;
+  border-left: 3px solid var(--primary-color);
   border-radius: 4px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.05);
 }
@@ -243,7 +248,7 @@
  .counter-badge {
    font-size: 13px;
    font-weight: 600;
-   background-color: #002f6c;
+   background-color: var(--primary-color);
    color: var(--surface-color);
    padding: 4px 10px;
    border-radius: 12px;
@@ -256,7 +261,7 @@
    padding: 3px 8px;
    font-size: 12px;
    font-weight: 600;
-   color: #002f6c;
+   color: var(--primary-color);
    cursor: pointer;
    transition: background 0.2s;
  }
@@ -289,7 +294,7 @@
    outline: none;
  }
  .filter-group input:focus, .filter-group select:focus {
-   border-color: #002f6c;
+   border-color: var(--primary-color);
    box-shadow: 0 0 0 2px rgba(0,47,108,0.15);
  }
  .checkbox-group {
@@ -317,7 +322,7 @@
  .conflict-summary {
    font-size: 13px;
    font-weight: 700;
-   color: #002f6c;
+   color: var(--primary-color);
    cursor: pointer;
    user-select: none;
    padding: 4px 0;
@@ -350,7 +355,7 @@
  }
  .btn-add {
    padding: 7px 14px;
-   background-color: #002f6c;
+   background-color: var(--primary-color);
    color: white;
    border: none;
    border-radius: 6px;
@@ -413,7 +418,7 @@
    padding: 6px 0 2px 0;
    border-top: 1px solid #e1e4e8;
    cursor: pointer;
-   color: #002f6c;
+   color: var(--primary-color);
    font-size: 13px;
    font-weight: bold;
    user-select: none;
@@ -425,7 +430,7 @@
  }
  .panel-toggle-bar:hover {
    color: #001f48;
-   background-color: #f6f8fa;
+   background-color: var(--surface-subtle);
    border-radius: 0 0 6px 6px;
  }
  .hidden {
