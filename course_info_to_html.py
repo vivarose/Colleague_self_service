@@ -245,7 +245,7 @@ def clean_html(text, context=""):
     return re.sub(r'\s+', ' ', fixed_commas).strip()
 
 def clean_title(title_str):
-    """Format titles nicely, preserving Roman numerals."""
+    """Format titles nicely, preserving Roman numerals and acronyms like U.S."""
     if not is_valid(title_str):
         return ''
     s = str(title_str).strip()
@@ -256,20 +256,33 @@ def clean_title(title_str):
         'a', 'an', 'and', 'as', 'at', 'but', 'by', 'for', 'in',
         'nor', 'of', 'on', 'or', 'so', 'the', 'to', 'up', 'yet',
     }
+    preserve_upper = {'u.s.', 'u.s.a.'}
     roman_pattern = r'^(?i:M{0,4}(C[MD]|D?C{0,3})(X[CL]|L?X{0,3})(I[XV]|V?I{0,3}))$'
 
     words = s.split()
     cleaned = []
     for idx, w in enumerate(words):
-        w_lower = w.lower()
-        if re.match(roman_pattern, w) and len(w) > 1:
-            cleaned.append(w.upper())
-        elif w_lower == 'i':
-            cleaned.append('I')
-        elif idx > 0 and w_lower in small_words:
-            cleaned.append(w_lower)
+        # Strip surrounding punctuation (e.g., parentheses, colons, commas) to inspect the core token
+        match = re.match(r'^([^\w.]*)([\w.]+)([^\w.]*)$', w)
+        if match:
+            prefix, core, suffix = match.groups()
         else:
-            cleaned.append(w.capitalize())
+            prefix, core, suffix = '', w, ''
+
+        core_lower = core.lower()
+
+        if core_lower in preserve_upper:
+            formatted = core.upper()
+        elif re.match(roman_pattern, core) and len(core) > 1:
+            formatted = core.upper()
+        elif core_lower == 'i':
+            formatted = 'I'
+        elif idx > 0 and core_lower in small_words:
+            formatted = core_lower
+        else:
+            formatted = core.capitalize()
+
+        cleaned.append(f'{prefix}{formatted}{suffix}')
 
     return ' '.join(cleaned)
 
