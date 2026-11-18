@@ -310,6 +310,7 @@ merged_df.loc[missing_mask, 'COURSE_NO'] = merged_df.loc[missing_mask].apply(
     axis=1,
 )
 
+
 #%% Identify courses in schedule_df that were not found in courses_df
 
 print('Identifying missing course descriptions.')
@@ -335,6 +336,34 @@ else:
 
 # Remove the temporary merge indicator column
 merged_df.drop(columns=['_merge'], inplace=True)
+
+#%% patch: backfill missing catalog/cross-list info for WMGST217 01 from sibling sections
+to_patch = 'WMGST217 01'
+target_mask = merged_df['COURSE_NO'].astype(str).str.strip() == to_patch
+donor_rows = merged_df[
+    (merged_df['TITLE'].astype(str).str.strip() == 'INTRO U.S. LATINX/LIT') & (~target_mask)
+]
+
+if target_mask.any() and not donor_rows.empty:
+    donor = donor_rows.iloc[0]
+    cols_to_patch = [
+        'TITLE',
+        'Course Name',
+        'Course Description',
+        'Catalogue URL',
+        'Cross Listed Courses',
+        'Cross Listed Courses Narrative',
+        'Prerequisites',
+        'Prerequisite Narrative',
+        'Corequisites',
+        'Corequisite Narrative',
+        'Special Corequisites',
+    ]
+    for col in cols_to_patch:
+        if col in merged_df.columns and pd.isna(merged_df.loc[target_mask, col]).all():
+            merged_df.loc[target_mask, col] = donor[col]
+print('Patched ' + to_patch + '.\n')
+
 
 #%% Check for duplicates
 
@@ -779,7 +808,7 @@ final_df['Hist_Status'] = final_df['Offered_Last_Year'].map(
 
 #%% Re-order the output 
 # 1. Specify the desired leading columns
-first_cols = ['Subject Code', 'Course Number+', 'Section', 
+first_cols = ['COURSE_NO', 'Subject Code', 'Course Number+', 'Section', 
               'TITLE', 'Course Name',  'CREDIT',
               'DAY1', 'TIME1-start', 'TIME1-end',
               'DAY2', 'TIME2-start', 'TIME2-end',
