@@ -800,16 +800,13 @@ def load_file_content(filename):
         return f.read()
 
 
-
-
-if __name__ == '__main__':
-    df_file = BASE_DIR / 'merged_course_schedule.pkl'
-    html_template_file = 'htmltemplate.html'
-    js_file = 'filter.js'
-
+def build_html(df_file = BASE_DIR / 'merged_course_schedule.pkl',
+               html_template_file = 'htmltemplate.html',
+               js_file = 'filter.js'):
     if not df_file.exists():
         print(f"❌ Error: Could not find '{df_file}'. Run join-catalogue.py first.")
         raise SystemExit(1)
+        return df_file
     else:
         try:
             print("📂 Loading HTML template and JavaScript files...")
@@ -891,4 +888,9 @@ if __name__ == '__main__':
         except Exception as e:
             print(f"❌ Error building courses.html: {e}")
             raise SystemExit(1) from e
+            
+        return final_html
+
+if __name__ == '__main__':
+    final_html = build_html()
             

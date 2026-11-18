@@ -21,7 +21,7 @@ from bs4 import BeautifulSoup
 import pandas as pd
 from pypdf import PdfReader
 
-from course_info_to_html import CATALOG_TERM, CATALOG_TERM_LABEL
+from course_info_to_html import CATALOG_TERM, CATALOG_TERM_LABEL, build_html
 from seat_allocations import parse_allocations
 
 import sys
@@ -278,16 +278,16 @@ def refresh(output, refresh_date):
         merged = pd.read_pickle(staging / 'merged_course_schedule.pkl')
         if len(merged) != len(schedule):
             # This is ok. This is because I'm adding PE courses and others.
-            print(f"Original schedule rows from Admissions: {len(schedule)} | Merged rows: {len(merged)}")
+            print(f"Original schedule rows from Admissions: {len(schedule)} | Merged rows (adding PE): {len(merged)}")
             #raise ValueError('Merging sources changed the schedule row count.')
         if (output / 'catalog-snapshots').exists():
             shutil.copytree(output / 'catalog-snapshots', staging / 'catalog-snapshots')
-        provenance = {
-            'refresh_date': refresh_date, 'timezone': 'UTC-05:00',
-            'source_retrieved_at': datetime.now(timezone.utc).isoformat(), 'sources': sources
-        }
-        (staging / 'source-provenance.json').write_text(json.dumps(provenance, indent=2) + '\n')
-        subprocess.run([sys.executable, str(staging / 'course_info_to_html.py')], check=True, encoding='utf-8')
+            provenance = {
+                'refresh_date': refresh_date, 'timezone': 'UTC-05:00',
+                'source_retrieved_at': datetime.now(timezone.utc).isoformat(), 'sources': sources
+            }
+            (staging / 'source-provenance.json').write_text(json.dumps(provenance, indent=2) + '\n')
+        final_html = build_html()
         # All network, parsing, and build checks finish before published files change.
         for name in ('merged_course_schedule.pkl', 'merged_course_schedule.csv', 'courses.html', 'source-provenance.json'):
             shutil.copy2(staging / name, output / name)
