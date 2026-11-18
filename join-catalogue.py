@@ -341,7 +341,7 @@ merged_df.drop(columns=['_merge'], inplace=True)
 to_patch = 'WMGST217 01'
 target_mask = merged_df['COURSE_NO'].astype(str).str.strip() == to_patch
 donor_rows = merged_df[
-    (merged_df['TITLE'].astype(str).str.strip() == 'INTRO U.S. LATINX/LIT') & (~target_mask)
+    (merged_df['TITLE'].astype(str).str.strip() == merged_df[target_mask].TITLE.item()) & (~target_mask)
 ]
 
 if target_mask.any() and not donor_rows.empty:
@@ -362,7 +362,7 @@ if target_mask.any() and not donor_rows.empty:
     for col in cols_to_patch:
         if col in merged_df.columns and pd.isna(merged_df.loc[target_mask, col]).all():
             merged_df.loc[target_mask, col] = donor[col]
-print('Patched ' + to_patch + '.\n')
+print('Patched ' + to_patch + ': ' + merged_df[target_mask].TITLE.item() + '.\n')
 
 
 #%% Check for duplicates
