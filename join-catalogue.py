@@ -27,7 +27,7 @@ if sys.stdout.encoding.lower() != 'utf-8':
     sys.stdout.reconfigure(encoding='utf-8')
 
 # During registration, set the following line to True.
-reg_giving_current_cap = True # Is the registrar only giving the current capacity?
+reg_giving_current_cap = False # Is the registrar only giving the current capacity?
 
 warnings.filterwarnings('ignore', category=UserWarning, module='openpyxl')
 
@@ -39,24 +39,26 @@ schedule_df = pd.read_excel('courseschedule.xlsx')
 courses_df = pd.read_csv('courseExport.csv')
 colls_df = load_and_parse_colls_export('colls-prod-export.csv')
 
-try:
-    prev_df = pd.read_pickle('merged_course_schedule.pkl')
-    
-    # Drop duplicates
-    if 'COURSE_NO' in prev_df.columns:
-        prev_df = prev_df.drop_duplicates(subset=['COURSE_NO'], keep='first')
-    else:
-        # Fall back to alternative unique identifiers for older pickles
-        prev_df = prev_df.drop_duplicates(subset=['Subject Code', 'Course Number+', 'Section'], keep='first')
-except Exception as e:
-    print(f"⚠️ Error loading previous schedule: {e}")
-    prev_df = pd.DataFrame()
+if reg_giving_current_cap:
+    try:
+        prev_df = pd.read_pickle('merged_course_schedule.pkl')
+        
+        # Drop duplicates
+        if 'COURSE_NO' in prev_df.columns:
+            prev_df = prev_df.drop_duplicates(subset=['COURSE_NO'], keep='first')
+        else:
+            # Fall back to alternative unique identifiers for older pickles
+            prev_df = prev_df.drop_duplicates(subset=['Subject Code', 'Course Number+', 'Section'], keep='first')
+    except Exception as e:
+        print(f"⚠️ Error loading previous schedule: {e}")
+        prev_df = pd.DataFrame()
     
 print('Files loaded. Cleaning up data.')
 courses_df = courses_df.drop_duplicates()
 schedule_df = schedule_df.drop_duplicates()
 colls_df = colls_df.drop_duplicates()
-prev_df = prev_df.drop_duplicates()
+if reg_giving_current_cap:
+    prev_df = prev_df.drop_duplicates()
 
 # 2. Convert 'Course Number' in catalog to string for safe joining
 courses_df['Course Number'] = courses_df['Course Number'].astype(str).str.strip()
