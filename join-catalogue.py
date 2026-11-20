@@ -411,11 +411,7 @@ from pypdf import PdfReader
 # 1. Download the PDF directly from the Hamilton website
 url = "https://www.hamilton.edu/offices/registrar/registration/class-year-seats"
 headers = {"User-Agent": "Mozilla/5.0"}
-if os.environ.get('CATALOG_SEATS_FILE'):
-    with open(os.environ['CATALOG_SEATS_FILE'], 'rb') as seats_file:
-        pdf_file = io.BytesIO(seats_file.read())
-    print('Using local pdf of class seat restrictions.\n')
-else:
+try:
     # Download from the website
     response = requests.get(url, headers=headers, timeout=60)
     response.raise_for_status()
@@ -429,6 +425,11 @@ else:
     
     # Keep the file in memory for the PdfReader
     pdf_file = io.BytesIO(response.content)
+except:
+    with open(os.environ['CATALOG_SEATS_FILE'], 'rb') as seats_file:
+        pdf_file = io.BytesIO(seats_file.read())
+    print('Using local pdf of class seat restrictions.\n')
+
     
 reader = PdfReader(pdf_file)
 
