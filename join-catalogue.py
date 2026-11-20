@@ -23,6 +23,8 @@ import os
 import warnings
 from parse_colls_prod_export import load_and_parse_colls_export, build_course_no
 import sys
+from datetime import datetime
+from pathlib import Path
 if sys.stdout.encoding.lower() != 'utf-8':
     sys.stdout.reconfigure(encoding='utf-8')
 
@@ -33,11 +35,19 @@ warnings.filterwarnings('ignore', category=UserWarning, module='openpyxl')
 
 os.chdir(os.environ.get('CATALOG_INPUT_DIR', os.path.dirname(os.path.abspath(__file__))))
 
+BASE_DIR = Path(__file__).resolve().parent
+csv_path = BASE_DIR / "colls-prod-export.csv"
+if csv_path.exists():
+    dt = datetime.fromtimestamp(csv_path.stat().st_mtime).astimezone()
+ 
+#%%
 # 1. Load the files
 print('Loading files')
 schedule_df = pd.read_excel('courseschedule.xlsx')
 courses_df = pd.read_csv('courseExport.csv')
 colls_df = load_and_parse_colls_export('colls-prod-export.csv')
+
+
 
 if reg_giving_current_cap:
     try:
@@ -442,6 +452,15 @@ if 'Section' not in merged_df.columns:
 final_df = merge_allocations(merged_df, seats_df)
 
 #%% Check for discrepancies between MAXCAP and Sec Capacity
+
+## First, if the colls_df is from today, then privilege that over the excel download.
+if not reg_giving_current_cap:
+    print((final_df[final_df['Current Capacity'] != final_df['MAXCAP']])[['COURSE_NO', 'MAXCAP', 'Current Capacity']])
+    if datetime.today().date() == dt.date():
+        print('Using Current Capacity from colls-prod for MAXCAP instead of the Printable/excel')
+        final_df = final_df.rename(columns={'MAXCAP': 'MAXCAP_printable'})
+        final_df['MAXCAP'] = final_df['Current Capacity']
+        final_df['MAXCAP'] = final_df['MAXCAP'].fillna(final_df['MAXCAP_printable'])
 
 # 1. Safely convert 'Sec Capacity' to numeric (turns "" or text into NaN)
 sec_cap_numeric = pd.to_numeric(final_df['Sec Capacity'], errors='coerce')
