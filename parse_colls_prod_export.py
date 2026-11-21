@@ -59,7 +59,7 @@ def parse_section_name(df: pd.DataFrame, col: str = 'Section Name') -> pd.DataFr
 
 def parse_availability(df: pd.DataFrame, col: str = 'Availability') -> pd.DataFrame:
     """
-    Parses 'Available / Taken / Capacity / Waitlisted' (e.g., '8 / 12 / 20 / 4')
+    Parses 'Available / Taken / Capacity / Waitlisted' (e.g., '8 / 12 / 20 / 4' or '-2 / 22 / 20 / 0')
     into nullable integer columns and derived availability flags.
     """
     out_cols = ['Seats Available', 'Seats Taken', 'Current Capacity', 'Seats Waitlisted']
@@ -74,7 +74,8 @@ def parse_availability(df: pd.DataFrame, col: str = 'Availability') -> pd.DataFr
     extracted = (
         df[col]
         .astype('string')
-        .str.extract(r'^\s*(\d+)\s*/\s*(\d+)\s*/\s*(\d+)\s*/\s*(\d+)\s*$')
+        # Added '-?' to each capture group to allow for negative values
+        .str.extract(r'^\s*(-?\d+)\s*/\s*(-?\d+)\s*/\s*(-?\d+)\s*/\s*(-?\d+)\s*$')
     )
 
     for idx, name in enumerate(out_cols):
