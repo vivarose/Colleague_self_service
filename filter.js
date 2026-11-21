@@ -2,6 +2,25 @@
 
 let busyBlocks = [];
 
+function applyAsOfLabel() {
+  // 1. Target the JSON block containing 'as_of_label'
+  const snapshotElement = document.getElementById('catalogSnapshot');
+  if (!snapshotElement) return;
+
+  try {
+    const snapshot = JSON.parse(snapshotElement.textContent);
+    const asOfLabel = snapshot.as_of_label || '';
+    if (!asOfLabel) return;
+
+    // 2. Target the correct HTML class used in your capacity line
+    document.querySelectorAll('.as-of-label').forEach(el => {
+      el.textContent = asOfLabel;
+    });
+  } catch (error) {
+    console.error('Could not apply as_of_label:', error);
+  }
+}
+
 async function updateVisitCount() {
   const counterElement = document.getElementById('visitCounter');
   if (!counterElement) return;
@@ -799,6 +818,7 @@ if (typeof window !== 'undefined') {
   
   // Attach Event Listeners on DOM Load
   window.addEventListener('DOMContentLoaded', () => {
+	applyAsOfLabel(); // fill in " as of Nov 21" for seats taken line.
     requestDailyRefresh();
     updateVisitCount();
     document.getElementById('searchInput')?.addEventListener('input', filterCourses);

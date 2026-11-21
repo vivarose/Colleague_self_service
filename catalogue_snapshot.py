@@ -4,7 +4,7 @@ import json
 import math
 
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 IDENTITY_FIELDS = ('Subject Code', 'Course Number+', 'Section')
 
 
@@ -34,7 +34,7 @@ def record_id(row, term):
     return canonical_json([term, *identity])
 
 
-def build_snapshot(rows, term, term_label, generated_at=None):
+def build_snapshot(rows, term, term_label, generated_at=None, taken_seats_as_of_label="",):
     if not term or not term_label:
         raise ValueError('An explicit catalog term and label are required.')
     grouped = {}
@@ -58,6 +58,7 @@ def build_snapshot(rows, term, term_label, generated_at=None):
         'schema_version': SCHEMA_VERSION,
         'term': term,
         'term_label': term_label,
+        'as_of_label': taken_seats_as_of_label,
         'records': records,
         'identity_issues': identity_issues,
     }

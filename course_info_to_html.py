@@ -466,6 +466,15 @@ def build_historical_html(row):
     return hist_info_html
   
   
+def get_as_of_label(csv_path = BASE_DIR / "colls-prod-export.csv"):
+    # obtain date of Seats Taken info
+    if csv_path.exists():
+        dt = datetime.fromtimestamp(csv_path.stat().st_mtime).astimezone()
+        as_of_label = f" as of {dt.strftime('%b')} {dt.day}" # e.g., " as of Nov 12"
+        # source_updated_at = dt.isoformat(timespec="seconds")
+    else:
+        as_of_label = ""
+    return as_of_label
 
 #%% Build html!
 def display_course_info(data, mode='html'):
@@ -483,15 +492,6 @@ def display_course_info(data, mode='html'):
             'Input must be a pandas DataFrame, Series, dict, or list of rows.'
         )
         
-    # obtain date of Seats Taken info
-    csv_path = BASE_DIR / "colls-prod-export.csv"
-    if csv_path.exists():
-        dt = datetime.fromtimestamp(csv_path.stat().st_mtime).astimezone()
-        as_of_label = f" as of {dt.strftime('%b')} {dt.day}" # e.g., " as of Nov 12"
-        # source_updated_at = dt.isoformat(timespec="seconds")
-    else:
-        as_of_label = ""
-
     if mode.lower() == 'html':
         parents, labs_by_key = group_courses_and_labs(rows) # group labs with parent courses
         html_cards = []
@@ -652,8 +652,8 @@ def display_course_info(data, mode='html'):
             seats_taken = row.get('Seats Taken')
             if is_valid(seats_taken):
                 seats_taken = clean_num(seats_taken)
-                cap_parts.append(f'({seats_taken} taken' + as_of_label + ')')
-
+                cap_parts.append(f'({seats_taken} taken<span class="as-of-label"></span>)')
+                
             seat_breakdown = []
             for yr, label in [('Fr Cap', 'Fr'), ('So Cap', 'So'), ('Jr Cap', 'Jr'), ('Sr Cap', 'Sr')]:
                 v = row.get(yr)
@@ -824,7 +824,8 @@ if __name__ == '__main__':
             snapshot = build_snapshot(
                 df.where(pd.notna(df), None).to_dict('records'), 
                 CATALOG_TERM, 
-                CATALOG_TERM_LABEL
+                CATALOG_TERM_LABEL,
+                taken_seats_as_of_label=get_as_of_label()
             )
     
             provenance_path = BASE_DIR / 'source-provenance.json'
