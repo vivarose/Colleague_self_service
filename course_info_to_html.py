@@ -225,7 +225,7 @@ def clean_html(text, context=""):
     clean = re.sub(r'<br\s*/?>', ' ', text_unescaped)
     
     # Remove opening <p> tags entirely, including any attributes (like class or style)
-    clean = re.sub(r'<p[^>]*>', '', clean)
+    clean = re.sub(r'<p[^>]*>', '', clean) # this avoids an extra lineskip.
     
     # Replace closing </p> tags with a space to maintain separation between paragraphs
     clean = re.sub(r'</p>', ' ', clean)
