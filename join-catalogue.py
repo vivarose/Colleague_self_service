@@ -491,11 +491,17 @@ if not check_me.empty:
 else:
     print('No discrepancies found between MAXCAP and Sec Capacity.')
 
-#%% Use the pdf values when available.
+#%% Decide whether to use seat cap restriction values for MAXCAP
 
-print('Using pdf values for MAXCAP if available.')
-# Overwrite MAXCAP with Sec Capacity ONLY where they both exist and differ
-final_df.loc[mask, 'MAXCAP'] = sec_cap_numeric[mask]
+# If colls-prod-export was downloaded TODAY, then that takes precedence. 
+# Otherwise use the class seat restriction pdf.
+if not check_me.empty:
+    if datetime.today().date() == dt.date() and not reg_giving_current_cap:
+        print('Trust colls-prod-export.csv for up-to-date MAXCAP info.')
+    else:
+        print('Overwriting MAXCAP with Sec Capacity from class seat restriction pdf values if available. See check_me for previous values.')
+        # Overwrite MAXCAP with Sec Capacity ONLY where they both exist and differ
+        final_df.loc[mask, 'MAXCAP'] = sec_cap_numeric[mask]
 
 #%% Fix missing subject names
 # 1. Convert empty strings or whitespace-only cells to NaN
