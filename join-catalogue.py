@@ -408,14 +408,14 @@ try:
     with open(save_path, 'wb') as f:
         f.write(response.content)
     
-    print(f'Downloaded and saved fresh pdf to {save_path}\n')
+    print(f'✅ Downloaded and saved fresh pdf to {save_path}\n')
     
     # Keep the file in memory for the PdfReader
     pdf_file = io.BytesIO(response.content)
 except:
     with open(os.environ['CATALOG_SEATS_FILE'], 'rb') as seats_file:
         pdf_file = io.BytesIO(seats_file.read())
-    print('Using local pdf of class seat restrictions.\n')
+    print('⚠️ Using local pdf of class seat restrictions, https://www.hamilton.edu/offices/registrar/registration/class-year-seats.\n')
 
     
 reader = PdfReader(pdf_file)
@@ -463,7 +463,7 @@ mask = (
 check_me = final_df[mask].copy()
 
 # Reorder columns to make reviewing easier
-first_cols = ['Subject Code', 'Course Number+', 'Section', 'MAXCAP', 'Sec Capacity']
+first_cols = ['COURSE_NO', 'MAXCAP', 'Sec Capacity']
 
 # Collect all other existing columns in their original relative order
 #remaining_cols = [col for col in check_me.columns if col not in first_cols]
@@ -473,10 +473,10 @@ check_me = check_me[first_cols]# + remaining_cols]
 
 # Print the DataFrame
 if not check_me.empty:
-    print('Discrepancies found between MAXCAP and Sec Capacity:\n')
+    print('⚠️ Discrepancies found between MAXCAP and Sec Capacity (seat restrictions pdf):')
     print(check_me)
 else:
-    print('No discrepancies found between MAXCAP and Sec Capacity.')
+    print('✅ No discrepancies found between MAXCAP and Sec Capacity.')
 
 #%% Decide whether to use seat cap restriction values for MAXCAP
 
@@ -688,7 +688,7 @@ def determine_class_year_eligibility(row):
     return pd.Series(text_status)
 
 # Apply evaluation function across DataFrame
-print('Determining class year exclusions with regular expressions.')
+print('\nDetermining class year exclusions with regular expressions. See audit file.')
 year_cols = ['1st-years', '2nd-years', '3rd-years', '4th-years']
 final_df[year_cols] = final_df.apply(determine_class_year_eligibility, axis=1)
 
@@ -719,7 +719,7 @@ choices = [
 
 # Apply to a new column, defaulting to an empty string if no conditions are met
 final_df['Special Corequisites'] = np.select(conditions, choices, default='')
-print('Identified special corequisites')
+print('\n✅ Identified special corequisites.\n')
 
 #%% Merge in URLs
 
@@ -736,6 +736,12 @@ if 'Catalogue URL' not in final_df.columns:
         how='left'
     )
 
+missing_url_df = final_df[final_df['Catalogue URL'].isnull()]
+if len(missing_url_df) > 0:
+    print('⚠️ Missing URLs: ' + str(list(missing_url_df['COURSE_NO'])))
+else:
+    print('✅ All URLs found')
+
 #%% Load historical seat availability
 
 def load_prior_year_availability(
@@ -746,7 +752,7 @@ def load_prior_year_availability(
     Parses Spring 2026 CSV and returns a dictionary mapping course section/base keys
     to historical enrollment stats.
     """
-    print('Loading prior year availability file')
+    print('\nLoading prior year availability file')
     df_history = pd.read_csv(csv_path)
     
     ## Parse the availability data
@@ -773,9 +779,9 @@ def load_prior_year_availability(
             anomalies = df[df['Seat_Difference'] != 0].copy()
 
             if anomalies.empty:
-                print("✅ Open seats plus enrollment equals seats offered across all courses.")
+                print("✅ Historical open seats + enrollment = seats offered.")
             else:
-                print(f"⚠️ Found {len(anomalies)} seat count anomalies:\n")
+                print(f"⚠️ Found {len(anomalies)} seat count anomalies in historical info:\n")
                 
                 # Columns to print for easy reading
                 cols_to_print = [c for c in ['Subject Code', 'Course Number', 'Section', cap_col, enr_col, open_col, 'Calculated_Capacity', 'Seat_Difference'] if c in df.columns]
@@ -841,7 +847,7 @@ final_df = final_df[first_cols + remaining_cols]
 final_df.to_csv('merged_course_schedule.csv', index=False)
 final_df.to_pickle('merged_course_schedule.pkl')
 
-print(f'Saved merged spreadsheet. Total rows: {len(final_df)}')
+print(f'✅ Saved merged spreadsheet. Total rows: {len(final_df)}')
 print(os.getcwd())
 
 print(r'merged_course_schedule.csv / pkl');
