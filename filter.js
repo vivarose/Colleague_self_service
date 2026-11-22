@@ -448,6 +448,17 @@ function setCorrigendumStatus(message, isError = false) {
   status.setAttribute('aria-live', isError ? 'assertive' : 'polite');
 }
 
+function pruneVariantForBaseline(rawVariant) {
+  const normalized = normalizeCorrigendumRow(rawVariant);
+  const pruned = {};
+  for (const field of CORRIGENDUM_TRACKED_FIELDS) {
+    if (normalized[field] !== undefined) {
+      pruned[field] = normalized[field];
+    }
+  }
+  return pruned;
+}
+
 function saveBookletBaseline() {
   try {
     const cards = getVisibleBookletCards();
@@ -460,6 +471,14 @@ function saveBookletBaseline() {
       if (!ids.length) throw new Error('A selected course is missing its catalog section identity.');
       selectedIds.push(...ids);
     }
+    const prunedSnapshot = {
+      ...snapshot,
+      records: snapshot.records.map(record => ({
+        ...record,
+        variants: record.variants.map(pruneVariantForBaseline),
+      })),
+    };
+
     const baseline = {
       format: 'hamilton-course-booklet-baseline',
       format_version: 1,
@@ -469,8 +488,8 @@ function saveBookletBaseline() {
       snapshot_id: snapshot.snapshot_id,
       selected_course_count: cards.length,
       selected_record_ids: [...new Set(selectedIds)],
-      snapshot,
-    };
+      snapshot: prunedSnapshot,
+    };	
     validateBookletBaseline(baseline);
     const blob = new Blob([JSON.stringify(baseline, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);

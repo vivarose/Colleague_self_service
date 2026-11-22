@@ -20174,21 +20174,21 @@
  <article id="courseBooklet" aria-label="Filtered course booklet"></article>
 
 <script type="application/json" id="catalogMetadata">{
-  "generated_at": "2026-11-22T16:19:22.637001+00:00",
+  "generated_at": "2026-11-22T16:35:17.539075+00:00",
   "identity_issues": [],
   "refresh_date": "2026-11-22",
   "schema_version": 1,
   "snapshot_id": "c63fe20aa8d8f300cfdbef2474b471f0426dbcd9ff647e6c8df937410fd03f79",
   "snapshot_path": "catalog-snapshots/c63fe20aa8d8f300cfdbef2474b471f0426dbcd9ff647e6c8df937410fd03f79.json",
   "source_file_sha256": "aa5248f9931a6648f642c9f6efa4905778f4b53ebed20b6cbae4dab16ec055d2",
-  "source_retrieved_at": "2026-11-22T16:19:20.840752+00:00",
+  "source_retrieved_at": "2026-11-22T16:35:15.607691+00:00",
   "source_updated_at": null,
   "term": "2027-spring",
   "term_label": "Spring 2027"
 }</script>
  <script type="application/json" id="catalogSnapshot">{
   "as_of_label": " as of Nov 22",
-  "generated_at": "2026-11-22T16:19:22.637001+00:00",
+  "generated_at": "2026-11-22T16:35:17.539075+00:00",
   "identity_issues": [],
   "records": [
     {
@@ -97883,6 +97883,17 @@ function setCorrigendumStatus(message, isError = false) {
   status.setAttribute('aria-live', isError ? 'assertive' : 'polite');
 }
 
+function pruneVariantForBaseline(rawVariant) {
+  const normalized = normalizeCorrigendumRow(rawVariant);
+  const pruned = {};
+  for (const field of CORRIGENDUM_TRACKED_FIELDS) {
+    if (normalized[field] !== undefined) {
+      pruned[field] = normalized[field];
+    }
+  }
+  return pruned;
+}
+
 function saveBookletBaseline() {
   try {
     const cards = getVisibleBookletCards();
@@ -97895,6 +97906,14 @@ function saveBookletBaseline() {
       if (!ids.length) throw new Error('A selected course is missing its catalog section identity.');
       selectedIds.push(...ids);
     }
+    const prunedSnapshot = {
+      ...snapshot,
+      records: snapshot.records.map(record => ({
+        ...record,
+        variants: record.variants.map(pruneVariantForBaseline),
+      })),
+    };
+
     const baseline = {
       format: 'hamilton-course-booklet-baseline',
       format_version: 1,
@@ -97904,8 +97923,8 @@ function saveBookletBaseline() {
       snapshot_id: snapshot.snapshot_id,
       selected_course_count: cards.length,
       selected_record_ids: [...new Set(selectedIds)],
-      snapshot,
-    };
+      snapshot: prunedSnapshot,
+    };	
     validateBookletBaseline(baseline);
     const blob = new Blob([JSON.stringify(baseline, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
