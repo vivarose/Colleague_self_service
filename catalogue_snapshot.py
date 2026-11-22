@@ -35,32 +35,56 @@ def record_id(row, term):
     return canonical_json([term, *identity])
 
 
-VOLATILE_SEAT_FIELDS = {
-    'Seats Available',
-    'Seats Taken',
-    'Seats Waitlisted',
-    'Availability',
-    'Status',
-    'Has Open Seats',
-    'Has Waitlist',
-    'Current Capacity',
-    '_merge_source',
-    # depending on whether I use refresh or not, the following changes
-    'DAY4_colls', 
-    'DAY4_sched',
-    'DAY4'
-}
+SNAPSHOT_TRACKED_FIELDS = (
+    'Subject Code', 'COURSE_NO', 'Section', 'Course Number', 'Course Number+',
+    'Course Name', 'TITLE',
+    'MAXCAP', 'Sec Capacity',
+    '1st-years', '2nd-years', '3rd-years', '4th-years',
+    'Fr Cap', 'So Cap', 'Jr Cap', 'Sr Cap',
+    'INSTRUCTOR1', 'INSTRUCTOR2', 'INSTRUCTOR3', 'INSTRUCTOR4',
+    'TEACHINGMETHOD', 'Writing-intensive', 'RESTRICTED',
+    'CREDIT', 'Catalogue URL',
+    'ROOM1', 'ROOM2', 'ROOM3', 'ROOM4',
+    'DAY1', 'DAY2', 'DAY3', 'DAY4',
+    'TIME1-start', 'TIME1-end',
+    'TIME2-start', 'TIME2-end',
+    'TIME3-start', 'TIME3-end',
+    'TIME4-start', 'TIME4-end',
+    'Prerequisite Narrative',
+    'Corequisite Narrative',
+    'Cross Listed Courses Narrative',
+    'COMMENTS', 'Notes',
+    'Course Description',
+)
+
+
+def prune_snapshot_variant(row: dict) -> dict:
+    """Normalize split merge columns and keep only the 48 canonical snapshot fields."""
+    normalized = {k: canonical_value(v) for k, v in row.items()}
+
+    if not normalized.get('Course Number'):
+        normalized['Course Number'] = (
+            normalized.get('Course Number_y')
+            or normalized.get('Course Number_x')
+            or ''
+        )
+
+    if not normalized.get('DAY4'):
+        normalized['DAY4'] = (
+            normalized.get('DAY4_sched')
+            or normalized.get('DAY4_colls')
+            or ''
+        )
+
+    return {field: normalized.get(field, '') for field in SNAPSHOT_TRACKED_FIELDS}
+
 
 def build_snapshot(rows, term, term_label, generated_at=None, taken_seats_as_of_label=""):
     if not term or not term_label:
         raise ValueError('An explicit catalog term and label are required.')
     grouped = {}
     for row in rows:
-        fields = {
-            name: canonical_value(value)
-            for name, value in row.items()
-            if name not in VOLATILE_SEAT_FIELDS
-        }
+        fields = prune_snapshot_variant(row)
         section_id = record_id(fields, term)
         identity = json.loads(section_id)[1:]
         for name, value in zip(IDENTITY_FIELDS, identity):
