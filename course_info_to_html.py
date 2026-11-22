@@ -575,11 +575,19 @@ def display_course_info(data, mode='html'):
                     lab_inst = lab.get('Faculty', lab.get('INSTRUCTOR1', 'TBA'))
                     lab_cap = clean_num(lab.get('MAXCAP') or lab.get('Sec Capacity', ''))
                     
+                    if is_valid(lab_inst):
+                        lab_inst_string = f'👤 <b>Instructor:</b> {lab_inst} | '
+                    else:
+                        lab_inst_string = ""
+                        
+                    
                     card.append(f'''
                 <div class="lab-card">
                   <div class="lab-code">{lab_code}</div>
                   <div class="lab-details">
-                    🕒 <b>Schedule:</b> {lab_sched_str} | 👤 <b>Instructor:</b> {lab_inst} | 👥 <b>Seats:</b> {lab_cap}
+                    🕒 <b>Schedule:</b> {lab_sched_str} | ''' + \
+                    lab_inst_string + \
+                        f'''👥 <b>Seats:</b> {lab_cap}
                   </div>
                 </div>
                     ''')
