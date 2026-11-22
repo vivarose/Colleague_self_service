@@ -488,19 +488,42 @@
  @page {
    margin: 16mm;
  }
- @media print {
+ 
+@media print {
+   :root,
+   [data-theme="dark"] {
+     color-scheme: light;
+     --bg-color: #ffffff;
+     --surface-color: #ffffff;
+     --surface-subtle: #ffffff;
+     --surface-color2: #ffffff;
+     --text-main: #000000;
+     --text-muted: #000000;
+     --quietgrey: #000000;
+     --quietnotable: #000000;
+     --primary-color: #000000;
+     --border-color: #000000;
+   }
    body {
-     background: white;
+     background: white !important;
      padding: 0;
-     color: black;
+     color: black !important;
+     -webkit-print-color-adjust: exact;
+     print-color-adjust: exact;
    }
    body > .container, body > footer {
      display: none !important;
    }
    #courseBooklet {
      display: block;
+     color: black !important;
      font: 10.5pt/1.4 Georgia, 'Times New Roman', serif;
      overflow-wrap: anywhere;
+   }
+   #courseBooklet * {
+     color: black !important;
+     background: transparent !important;
+     box-shadow: none !important;
    }
    #courseBooklet h1 {
      font-size: 20pt;
@@ -588,6 +611,7 @@
    }
    #courseBooklet .lab-card {
      margin: 5pt 0 0 10pt;
+     border-left: 1.5pt solid black;
      break-inside: avoid;
    }
  }
@@ -20173,21 +20197,21 @@
  <article id="courseBooklet" aria-label="Filtered course booklet"></article>
 
 <script type="application/json" id="catalogMetadata">{
-  "generated_at": "2026-11-22T21:36:39.904136+00:00",
+  "generated_at": "2026-11-22T22:42:06.756608+00:00",
   "identity_issues": [],
   "refresh_date": "2026-11-22",
   "schema_version": 1,
   "snapshot_id": "70ecf5013cd9044639742e5d30147509c16ca9a19a5f567ecc0824058b643ef9",
   "snapshot_path": "catalog-snapshots/70ecf5013cd9044639742e5d30147509c16ca9a19a5f567ecc0824058b643ef9.json",
   "source_file_sha256": "29e12552c0355ce39a0a0b72f89129d8d9488050ec7ff7511dd9bc33ac04c5ec",
-  "source_retrieved_at": "2026-11-22T20:18:03.317761+00:00",
+  "source_retrieved_at": "2026-11-22T22:10:53.230654+00:00",
   "source_updated_at": null,
   "term": "2027-spring",
   "term_label": "Spring 2027"
 }</script>
  <script type="application/json" id="catalogSnapshot">{
   "as_of_label": " as of Nov 22",
-  "generated_at": "2026-11-22T21:36:39.904136+00:00",
+  "generated_at": "2026-11-22T22:42:06.756608+00:00",
   "identity_issues": [],
   "records": [
     {

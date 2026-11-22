@@ -488,19 +488,42 @@
  @page {
    margin: 16mm;
  }
- @media print {
+ 
+@media print {
+   :root,
+   [data-theme="dark"] {
+     color-scheme: light;
+     --bg-color: #ffffff;
+     --surface-color: #ffffff;
+     --surface-subtle: #ffffff;
+     --surface-color2: #ffffff;
+     --text-main: #000000;
+     --text-muted: #000000;
+     --quietgrey: #000000;
+     --quietnotable: #000000;
+     --primary-color: #000000;
+     --border-color: #000000;
+   }
    body {
-     background: white;
+     background: white !important;
      padding: 0;
-     color: black;
+     color: black !important;
+     -webkit-print-color-adjust: exact;
+     print-color-adjust: exact;
    }
    body > .container, body > footer {
      display: none !important;
    }
    #courseBooklet {
      display: block;
+     color: black !important;
      font: 10.5pt/1.4 Georgia, 'Times New Roman', serif;
      overflow-wrap: anywhere;
+   }
+   #courseBooklet * {
+     color: black !important;
+     background: transparent !important;
+     box-shadow: none !important;
    }
    #courseBooklet h1 {
      font-size: 20pt;
@@ -588,6 +611,7 @@
    }
    #courseBooklet .lab-card {
      margin: 5pt 0 0 10pt;
+     border-left: 1.5pt solid black;
      break-inside: avoid;
    }
  }

@@ -64,8 +64,8 @@ def prune_snapshot_variant(row: dict) -> dict:
 
     if not normalized.get('Course Number'):
         normalized['Course Number'] = (
-            normalized.get('Course Number_y')
-            or normalized.get('Course Number_x')
+            normalized.get('Course Number_x') # shouldn't have this anymore, but for back-compatibility
+            or normalized.get('Course Number_y')
             or ''
         )
 
