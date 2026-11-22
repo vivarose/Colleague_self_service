@@ -76,6 +76,8 @@ def merge_allocations(schedule_df, seats_df):
         on='_allocation_key', how='left', validate='many_to_one'
     )
     
+    ## Already checking this
+    '''
     # 2. Check for capacity mismatches
     if 'MAXCAP' in merged.columns and 'Sec Capacity' in merged.columns:
         # Convert to numeric to avoid string formatting false-positives (e.g., '18' vs 18.0)
@@ -91,6 +93,7 @@ def merge_allocations(schedule_df, seats_df):
                 f"Capacity mismatch ('MAXCAP' vs 'Sec Capacity') found in {len(mismatches)} section(s): {mismatched_keys}", 
                 stacklevel=2
             )
+    '''
             
     # 3. Drop the allocation key and return
     return merged.drop(columns='_allocation_key')
