@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from hashlib import sha256
 import json
 import math
-
+from clean_data import clean_html
 
 SCHEMA_VERSION = 1 # matches filter.js: snapshot.schema_version
 IDENTITY_FIELDS = ('Subject Code', 'Course Number+', 'Section')
@@ -76,7 +76,9 @@ def prune_snapshot_variant(row: dict) -> dict:
             or ''
         )
 
-    return {field: normalized.get(field, '') for field in SNAPSHOT_TRACKED_FIELDS}
+    pruned = {field: normalized.get(field, '') for field in SNAPSHOT_TRACKED_FIELDS}
+    pruned['Course Description'] = clean_html(pruned['Course Description'])
+    return pruned
 
 
 def build_snapshot(rows, term, term_label, generated_at=None, taken_seats_as_of_label=""):

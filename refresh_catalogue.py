@@ -246,7 +246,8 @@ def refresh(output, refresh_date):
             'merged_course_schedule.pkl',
             'course_info_to_html.py', 'catalogue_snapshot.py', 
             'htmltemplate.html', 'filter.js',
-            'seat_allocations.py'
+            'seat_allocations.py',
+            'clean_data.py'
         ]
         for filename in files_to_copy:
             src_file = ROOT / filename

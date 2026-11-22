@@ -549,9 +549,9 @@ const CORRIGENDUM_TRACKED_FIELDS = new Set([
 	'Course Description'
 ]);
 
-const CORRIGENDUM_LONG_FIELDS = new Set([
-  'Notes', 'Prerequisite Narrative', 'Corequisite Narrative',
-  'Credit Hours Narrative', 'Cross Listed Courses Narrative', 'Course Description',
+const CORRIGENDUM_LONG_FIELDS = new Set([ // If the purpose is to print it all, then let's do it.
+  //'Prerequisite Narrative', 'Corequisite Narrative',
+  //'Credit Hours Narrative', 'Cross Listed Courses Narrative', 'Course Description',
 ]);
 
 function normalizeCorrigendumRow(row) {
@@ -563,11 +563,11 @@ function normalizeCorrigendumRow(row) {
   return normalized;
 }
 
-function normalizeCorrigendumFieldValue(field, value) {
+function normalizeCorrigendumDisplayValue(field, value) {
   if (field === 'Course Description' || field === 'Notes') {
     return plainDescription(value);
   }
-  let text = String(value ?? '').trim().replace(/\s+,/g, ',').replace(/\s+/g, ' ');
+  let text = String(value ?? '').trim().replace(/\s+([,.;:!?])/g, '$1').replace(/\s+/g, ' ');
   if (!text) return '';
   if (field === 'COMMENTS' || field === 'Prerequisite Narrative' || field === 'Corequisite Narrative') {
     text = text.replace(/\.+$/, '');
@@ -580,14 +580,35 @@ function normalizeCorrigendumFieldValue(field, value) {
   return text;
 }
 
+function normalizeCorrigendumCompareValue(field, value) {
+  let text = normalizeCorrigendumDisplayValue(field, value);
+  if (!text) return '';
+  if (['Notes', 'COMMENTS', 'Course Description', 'Prerequisite Narrative', 'Corequisite Narrative'].includes(field)) {
+    text = text.replace(/[-\s]+/g, '');
+  }
+  return text;
+}
+
+const LAB_IGNORED_FIELDS = new Set(['Catalogue URL', 'Notes']);
+
+function isLabCourse(row) {
+  const courseNumPlus = String(row['Course Number+'] || '').trim();
+  return /L$/i.test(courseNumPlus);
+}
+
 function getCorrigendumChangedFields(oldRawRow, newRawRow) {
   const oldRow = normalizeCorrigendumRow(oldRawRow);
   const newRow = normalizeCorrigendumRow(newRawRow);
+  const ignoreLabCatalogNoise = isLabCourse(newRow) || isLabCourse(oldRow);
+
   return [...CORRIGENDUM_TRACKED_FIELDS]
-    .filter(field =>
-      normalizeCorrigendumFieldValue(field, oldRow[field]) !==
-      normalizeCorrigendumFieldValue(field, newRow[field])
-    );
+    .filter(field => {
+      if (ignoreLabCatalogNoise && LAB_IGNORED_FIELDS.has(field)) return false;
+      return (
+        normalizeCorrigendumCompareValue(field, oldRow[field]) !==
+        normalizeCorrigendumCompareValue(field, newRow[field])
+      );
+    });
 }
 
 function corrigendumFieldLabel(field) {
@@ -603,11 +624,19 @@ function corrigendumFieldLabel(field) {
   return field;
 }
 
+
+const SMARTCATALOG_COURSES_PREFIX =
+  /^https?:\/\/hamilton\.smartcatalogiq\.com\/en\/current\/college-catalogue\/courses\//i;
+
 function corrigendumValue(field, value) {
-  const text = normalizeCorrigendumFieldValue(field, value);
+  let text = normalizeCorrigendumDisplayValue(field, value);
   if (!text) return '(blank)';
-  return text.length > 60 ? `${text.slice(0, 57)}...` : text;
-}
+  if (field === 'Catalogue URL') {
+    return text.replace(SMARTCATALOG_COURSES_PREFIX, '');
+  }
+  if (field === 'Notes') return text;
+  return text.length > 1000 ? `${text.slice(0, 57)}...` : text;
+} // ***
 
 function describeCorrigendumChange(change) {
   const oldRow = normalizeCorrigendumRow(change.before.variants[0]);
@@ -619,12 +648,35 @@ function describeCorrigendumChange(change) {
     .join('; ');
 }
 
+const _entityDecoder = typeof document !== 'undefined' ? document.createElement('textarea') : null;
+
+function decodeHtmlEntities(text) {
+  if (_entityDecoder) {
+    _entityDecoder.innerHTML = text;
+    return _entityDecoder.value;
+  }
+  // Fallback for Node.js tests where document isn't defined
+  return text
+    .replace(/&#(\d+);/g, (_, dec) => String.fromCodePoint(Number(dec)))
+    .replace(/&#x([0-9a-f]+);/gi, (_, hex) => String.fromCodePoint(parseInt(hex, 16)))
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'");
+}
+
 function plainDescription(html) {
-  const text = String(html ?? '').replace(/<[^>]*>/g, ' ')
-    .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'")
-    .replace(/\s+/g, ' ').trim();
-  return text;
+  const withoutTags = String(html ?? '').replace(/<[^>]*>/g, ' ');
+  return decodeHtmlEntities(withoutTags)
+    .normalize('NFC')
+    .replace(/\u00a0/g, ' ')
+    .replace(/[\u201C\u201D]/g, '"')
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/[\u2013\u2014]/g, '-')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 function appendCorrigendumList(container, heading, items) {
