@@ -716,6 +716,53 @@ function plainDescription(html) {
     .trim();
 }
 
+const SMARTCATALOG_COURSES_BASE =
+  'https://hamilton.smartcatalogiq.com/en/current/college-catalogue/courses/';
+
+function buildCorrigendumUrlNode(rawValue) {
+  const cleaned = normalizeCorrigendumDisplayValue('Catalogue URL', rawValue);
+  if (!cleaned) {
+    return document.createTextNode('(blank)');
+  }
+  const slug = cleaned.replace(SMARTCATALOG_COURSES_PREFIX, '');
+  const href = /^https?:\/\//i.test(cleaned)
+    ? cleaned
+    : `${SMARTCATALOG_COURSES_BASE}${slug.replace(/^\/+/, '')}`;
+
+  const link = document.createElement('a');
+  link.href = href;
+  link.textContent = slug;
+  link.target = '_blank';
+  link.rel = 'noopener noreferrer';
+  return link;
+}
+
+function appendCorrigendumChangeFragment(container, change) {
+  const oldRow = normalizeCorrigendumRow(change.before.variants[0]);
+  const newRow = normalizeCorrigendumRow(change.current.variants[0]);
+  const fields = getCorrigendumChangedFields(oldRow, newRow);
+
+  fields.forEach((field, index) => {
+    if (index > 0) {
+      container.appendChild(document.createTextNode('; '));
+    }
+    if (CORRIGENDUM_LONG_FIELDS.has(field)) {
+      container.appendChild(document.createTextNode(`${corrigendumFieldLabel(field)} updated`));
+    } else if (field === 'Catalogue URL') {
+      container.appendChild(document.createTextNode(`${corrigendumFieldLabel(field)}: `));
+      container.appendChild(buildCorrigendumUrlNode(oldRow[field]));
+      container.appendChild(document.createTextNode(' \u2192 '));
+      container.appendChild(buildCorrigendumUrlNode(newRow[field]));
+    } else {
+      container.appendChild(
+        document.createTextNode(
+          `${corrigendumFieldLabel(field)}: ${corrigendumValue(field, oldRow[field])} \u2192 ${corrigendumValue(field, newRow[field])}`
+        )
+      );
+    }
+  });
+}
+
 function appendCorrigendumList(container, heading, items) {
   if (!items.length) return;
   const section = document.createElement('section');
@@ -725,13 +772,18 @@ function appendCorrigendumList(container, heading, items) {
   section.appendChild(title);
   const list = document.createElement('ul');
   items.forEach(entry => {
-    const { text, detail } = typeof entry === 'string' ? { text: entry } : entry;
     const item = document.createElement('li');
-    item.textContent = text;
-    if (detail) {
+    if (typeof entry === 'string') {
+      item.textContent = entry;
+    } else if (entry.render) {
+      entry.render(item);
+    } else {
+      item.textContent = entry.text;
+    }
+    if (entry.detail) {
       const description = document.createElement('div');
       description.className = 'corrigendum-description';
-      description.textContent = detail;
+      description.textContent = entry.detail;
       item.appendChild(description);
     }
     list.appendChild(item);
@@ -766,8 +818,16 @@ function prepareCorrigendumBooklet() {
     text: recordLabel(record),
     detail: plainDescription(record.variants[0]['Course Description']),
   })));
-  appendCorrigendumList(booklet, 'Changed', changedEntries.map(({ change, summary }) =>
-    `${recordLabel(change.current)} \u2014 ${summary}`));
+  appendCorrigendumList(
+    booklet,
+    'Changed',
+    changedEntries.map(({ change }) => ({
+      render(item) {
+        item.appendChild(document.createTextNode(`${recordLabel(change.current)} \u2014 `));
+        appendCorrigendumChangeFragment(item, change);
+      },
+    }))
+  );
   appendCorrigendumList(booklet, 'Needs manual review: duplicate section identities',
     changes.ambiguous.map(issue =>
       `${recordLabel(issue.record) || issue.id} \u2014 ${issue.baseline_count} baseline variant(s), ${issue.current_count} current variant(s)`));
