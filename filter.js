@@ -367,7 +367,7 @@ function validateBookletBaseline(baseline) {
     throw new Error('This is not a supported Hamilton booklet baseline file.');
   }
   const snapshot = baseline.snapshot;
-  if (!snapshot || snapshot.schema_version !== 2 || !Array.isArray(snapshot.records)) {
+  if (!snapshot || ![1, 2].includes(snapshot.schema_version) || !Array.isArray(snapshot.records)) {
     throw new Error('The baseline does not contain a supported catalog snapshot.');
   }
   if (baseline.snapshot_id !== snapshot.snapshot_id || baseline.term !== snapshot.term ||
@@ -395,8 +395,10 @@ function validateBookletBaseline(baseline) {
 }
 
 function compareCatalogSnapshots(baseline, current, selectedIds) {
-  if (baseline.term !== current.term || baseline.schema_version !== current.schema_version) {
-    throw new Error('The baseline and current catalog must use the same term and schema.');
+  if (baseline.term !== current.term ||
+      ![1, 2].includes(baseline.schema_version) ||
+      ![1, 2].includes(current.schema_version)) {
+    throw new Error('The baseline and current catalog must use the same term and a supported schema.');
   }
   const baselineById = new Map(baseline.records.map(record => [record.id, record]));
   const currentById = new Map(current.records.map(record => [record.id, record]));
@@ -415,9 +417,7 @@ function compareCatalogSnapshots(baseline, current, selectedIds) {
       });
     } else if (!latest) {
       result.removed.push({ id, record: previous });
-    } else if ([...new Set([
-      ...Object.keys(previous.variants[0]), ...Object.keys(latest.variants[0])
-    ])].some(field => previous.variants[0][field] !== latest.variants[0][field])) {
+    } else if (getCorrigendumChangedFields(previous.variants[0], latest.variants[0]).length > 0) {
       result.changed.push({ id, before: previous, current: latest });
     } else {
       result.unchanged++;
@@ -439,6 +439,7 @@ function compareCatalogSnapshots(baseline, current, selectedIds) {
   }
   return result;
 }
+
 
 function setCorrigendumStatus(message, isError = false) {
   const status = document.getElementById('corrigendumStatus');
@@ -497,16 +498,78 @@ function recordLabel(record) {
 }
 
 const CORRIGENDUM_FIELD_LABELS = {
-  MAXCAP: 'Seat cap', 'Sec Capacity': 'Section capacity', 'Fr Cap': 'First-year cap',
-  'So Cap': 'Sophomore cap', 'Jr Cap': 'Junior cap', 'Sr Cap': 'Senior cap',
-  'Course Name': 'Name', TITLE: 'Title', Active: 'Active', Distribution: 'Distribution',
-  Prerequisites: 'Prerequisites', Corequisites: 'Corequisites', COMMENTS: 'Comments',
-  CREDIT: 'Credit', TEACHINGMETHOD: 'Teaching method', RESTRICTED: 'Restricted',
-  'Writing-intensive': 'Writing-intensive',
+  'Course Name': 'Name', TITLE: 'Title', // name
+  MAXCAP: 'Seat cap', 'Sec Capacity': 'Section capacity', // capacity
+  'Fr Cap': 'First-year cap', 'So Cap': 'Sophomore cap', // how much they are allowed
+  'Jr Cap': 'Junior cap', 'Sr Cap': 'Senior cap',
+  TEACHINGMETHOD: 'Teaching method', 'Writing-intensive': 'Writing-intensive',
+  RESTRICTED: 'Restricted',
+  CREDIT: 'Credit',
+  COMMENTS: 'Comments',
 };
-const CORRIGENDUM_IGNORED_FIELDS = new Set(['Course Description']);
-const CORRIGENDUM_LONG_FIELDS = new Set(['Notes', 'Prerequisite Narrative',
-  'Corequisite Narrative', 'Credit Hours Narrative', 'Cross Listed Courses Narrative']);
+
+const CORRIGENDUM_TRACKED_FIELDS = new Set([
+	'Subject Code','COURSE_NO', 'Section','Course Number', 'Course Number+', // course number
+	'Course Name','TITLE', // name
+	'MAXCAP', 'Sec Capacity', // capacity
+	'1st-years', '2nd-years', '3rd-years', '4th-years', // who's allowed
+	'Fr Cap', 'So Cap','Jr Cap', 'Sr Cap', // how much they are allowed
+	'INSTRUCTOR1', 'INSTRUCTOR2', 'INSTRUCTOR3', 'INSTRUCTOR4',
+	'TEACHINGMETHOD',  'Writing-intensive','RESTRICTED',
+	'CREDIT', 'Catalogue URL',
+	'ROOM1', 'ROOM2', 'ROOM3', 'ROOM4',
+	'DAY1', 'DAY2', 'DAY3', 'DAY4',
+	'TIME1-start','TIME1-end',  
+	'TIME2-start','TIME2-end', 
+	'TIME3-end', 'TIME3-start', 
+	'TIME4-start','TIME4-end', 
+	'Prerequisite Narrative',
+	'Corequisite Narrative',  
+	'Cross Listed Courses Narrative',
+	'COMMENTS', 'Notes',
+	'Course Description'
+]);
+
+const CORRIGENDUM_LONG_FIELDS = new Set([
+  'Notes', 'Prerequisite Narrative', 'Corequisite Narrative',
+  'Credit Hours Narrative', 'Cross Listed Courses Narrative', 'Course Description',
+]);
+
+function normalizeCorrigendumRow(row) {
+  const normalized = { ...row };
+  const courseNum = normalized['Course Number'] || normalized['Course Number_y'] || normalized['Course Number_x'];
+  if (courseNum !== undefined) normalized['Course Number'] = courseNum;
+  const day4 = normalized['DAY4'] || normalized['DAY4_sched'] || normalized['DAY4_colls'];
+  if (day4 !== undefined) normalized['DAY4'] = day4;
+  return normalized;
+}
+
+function normalizeCorrigendumFieldValue(field, value) {
+  if (field === 'Course Description' || field === 'Notes') {
+    return plainDescription(value);
+  }
+  let text = String(value ?? '').trim().replace(/\s+,/g, ',').replace(/\s+/g, ' ');
+  if (!text) return '';
+  if (field === 'COMMENTS' || field === 'Prerequisite Narrative' || field === 'Corequisite Narrative') {
+    text = text.replace(/\.+$/, '');
+  }
+  if (field === 'CREDIT' || field === 'MAXCAP' || field === 'Sec Capacity' ||
+      /^(Fr|So|Jr|Sr) Cap$/.test(field)) {
+    const num = Number(text);
+    if (Number.isFinite(num)) return String(num);
+  }
+  return text;
+}
+
+function getCorrigendumChangedFields(oldRawRow, newRawRow) {
+  const oldRow = normalizeCorrigendumRow(oldRawRow);
+  const newRow = normalizeCorrigendumRow(newRawRow);
+  return [...CORRIGENDUM_TRACKED_FIELDS]
+    .filter(field =>
+      normalizeCorrigendumFieldValue(field, oldRow[field]) !==
+      normalizeCorrigendumFieldValue(field, newRow[field])
+    );
+}
 
 function corrigendumFieldLabel(field) {
   if (CORRIGENDUM_FIELD_LABELS[field]) return CORRIGENDUM_FIELD_LABELS[field];
@@ -521,21 +584,19 @@ function corrigendumFieldLabel(field) {
   return field;
 }
 
-function corrigendumValue(value) {
-  const text = String(value ?? '').trim();
+function corrigendumValue(field, value) {
+  const text = normalizeCorrigendumFieldValue(field, value);
   if (!text) return '(blank)';
   return text.length > 60 ? `${text.slice(0, 57)}...` : text;
 }
 
 function describeCorrigendumChange(change) {
-  const oldRow = change.before.variants[0];
-  const newRow = change.current.variants[0];
-  return [...new Set([...Object.keys(oldRow), ...Object.keys(newRow)])]
-    .sort()
-    .filter(field => oldRow[field] !== newRow[field] && !CORRIGENDUM_IGNORED_FIELDS.has(field))
+  const oldRow = normalizeCorrigendumRow(change.before.variants[0]);
+  const newRow = normalizeCorrigendumRow(change.current.variants[0]);
+  return getCorrigendumChangedFields(oldRow, newRow)
     .map(field => CORRIGENDUM_LONG_FIELDS.has(field)
       ? `${corrigendumFieldLabel(field)} updated`
-      : `${corrigendumFieldLabel(field)}: ${corrigendumValue(oldRow[field])} \u2192 ${corrigendumValue(newRow[field])}`)
+      : `${corrigendumFieldLabel(field)}: ${corrigendumValue(field, oldRow[field])} \u2192 ${corrigendumValue(field, newRow[field])}`)
     .join('; ');
 }
 

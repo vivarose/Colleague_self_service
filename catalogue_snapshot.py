@@ -4,7 +4,7 @@ import json
 import math
 
 
-SCHEMA_VERSION = 2 # matches filter.js: snapshot.schema_version
+SCHEMA_VERSION = 1 # matches filter.js: snapshot.schema_version
 IDENTITY_FIELDS = ('Subject Code', 'Course Number+', 'Section')
 
 
@@ -23,6 +23,7 @@ def canonical_json(value):
     return json.dumps(value, sort_keys=True, ensure_ascii=True, separators=(',', ':'))
 
 
+
 def record_id(row, term):
     fields = {name: canonical_value(value) for name, value in row.items()}
     identity = [fields.get(name, '') for name in IDENTITY_FIELDS]
@@ -34,12 +35,32 @@ def record_id(row, term):
     return canonical_json([term, *identity])
 
 
-def build_snapshot(rows, term, term_label, generated_at=None, taken_seats_as_of_label="",):
+VOLATILE_SEAT_FIELDS = {
+    'Seats Available',
+    'Seats Taken',
+    'Seats Waitlisted',
+    'Availability',
+    'Status',
+    'Has Open Seats',
+    'Has Waitlist',
+    'Current Capacity',
+    '_merge_source',
+    # depending on whether I use refresh or not, the following changes
+    'DAY4_colls', 
+    'DAY4_sched',
+    'DAY4'
+}
+
+def build_snapshot(rows, term, term_label, generated_at=None, taken_seats_as_of_label=""):
     if not term or not term_label:
         raise ValueError('An explicit catalog term and label are required.')
     grouped = {}
     for row in rows:
-        fields = {name: canonical_value(value) for name, value in row.items()}
+        fields = {
+            name: canonical_value(value)
+            for name, value in row.items()
+            if name not in VOLATILE_SEAT_FIELDS
+        }
         section_id = record_id(fields, term)
         identity = json.loads(section_id)[1:]
         for name, value in zip(IDENTITY_FIELDS, identity):
@@ -54,17 +75,18 @@ def build_snapshot(rows, term, term_label, generated_at=None, taken_seats_as_of_
         records.append({'id': section_id, 'variants': [variants[key] for key in sorted(variants)]})
         if len(variants) > 1:
             identity_issues.append({'id': section_id, 'variant_count': len(variants)})
+
     content = {
         'schema_version': SCHEMA_VERSION,
         'term': term,
         'term_label': term_label,
-        'as_of_label': taken_seats_as_of_label,
         'records': records,
         'identity_issues': identity_issues,
     }
     content_hash = sha256(canonical_json(content).encode('utf-8')).hexdigest()
     return {
         **content,
+        'as_of_label': taken_seats_as_of_label,
         'snapshot_id': content_hash,
         'generated_at': generated_at or datetime.now(timezone.utc).isoformat(),
     }
@@ -75,9 +97,16 @@ def publish_snapshot(snapshot, directory):
     path = directory / f'{snapshot["snapshot_id"]}.json'
     if path.exists():
         stored = json.loads(path.read_text(encoding='utf-8'))
-        content = {key: value for key, value in stored.items() if key not in ('snapshot_id', 'generated_at')}
+        content = {
+            key: value
+            for key, value in stored.items()
+            if key not in ('snapshot_id', 'generated_at', 'as_of_label')
+        }
         if sha256(canonical_json(content).encode('utf-8')).hexdigest() != snapshot['snapshot_id']:
             raise ValueError(f'Archived snapshot failed integrity validation: {path}')
+        # Refresh the stored label/timestamp in place without creating a duplicate file
+        if stored.get('as_of_label') != snapshot.get('as_of_label'):
+            path.write_text(canonical_json(snapshot) + '\n', encoding='utf-8')
     else:
         path.write_text(canonical_json(snapshot) + '\n', encoding='utf-8')
     return path

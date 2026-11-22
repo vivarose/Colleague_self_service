@@ -287,8 +287,15 @@ def clean_title(title_str):
     return ' '.join(cleaned)
 
 
+def _ensure_terminal_punct(text):
+    text = text.strip()
+    if text and text[-1] not in '.!?':
+        return text + '.'
+    return text
+
+
 def clean_comments_notes(comments, notes):
-    """Combines COMMENTS and Notes while deduplicating overlapping text."""
+    """Combines COMMENTS and Notes for display while deduplicating overlapping text."""
     raw_texts = []
     for text in [comments, notes]:
         if is_valid(text):
@@ -302,23 +309,23 @@ def clean_comments_notes(comments, notes):
         return raw_texts[0]
 
     c_str, n_str = raw_texts[0], raw_texts[1]
-    c_norm, n_norm = c_str.rstrip('.'), n_str.rstrip('.')
+    c_norm, n_norm = c_str.rstrip('.!?'), n_str.rstrip('.!?')
 
     if c_norm in n_norm:
-        return n_str if n_str.endswith('.') else n_str + '.'
+        return n_str
     if n_norm in c_norm:
-        return c_str if c_str.endswith('.') else c_str + '.'
+        return c_str
 
     sentences = []
     for text in raw_texts:
         chunks = re.split(r'(?<=[.!?])\s+', text)
         for chunk in chunks:
             chunk_s = chunk.strip()
-            norm_chunk = chunk_s.rstrip('.')
+            norm_chunk = chunk_s.rstrip('.!?')
             if chunk_s and not any(
-                norm_chunk == existing.rstrip('.') for existing in sentences
+                norm_chunk == existing.rstrip('.!?') for existing in sentences
             ):
-                sentences.append(chunk_s)
+                sentences.append(_ensure_terminal_punct(chunk_s))
 
     return ' '.join(sentences)
 
