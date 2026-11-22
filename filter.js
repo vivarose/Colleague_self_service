@@ -367,7 +367,7 @@ function validateBookletBaseline(baseline) {
     throw new Error('This is not a supported Hamilton booklet baseline file.');
   }
   const snapshot = baseline.snapshot;
-  if (!snapshot || snapshot.schema_version !== 1 || !Array.isArray(snapshot.records)) {
+  if (!snapshot || snapshot.schema_version !== 2 || !Array.isArray(snapshot.records)) {
     throw new Error('The baseline does not contain a supported catalog snapshot.');
   }
   if (baseline.snapshot_id !== snapshot.snapshot_id || baseline.term !== snapshot.term ||

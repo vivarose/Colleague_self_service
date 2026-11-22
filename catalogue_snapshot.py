@@ -4,7 +4,7 @@ import json
 import math
 
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 2 # matches filter.js: snapshot.schema_version
 IDENTITY_FIELDS = ('Subject Code', 'Course Number+', 'Section')
 
 
