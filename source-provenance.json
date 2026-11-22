@@ -1,18 +1,18 @@
 {
   "refresh_date": "2026-11-22",
   "timezone": "UTC-05:00",
-  "source_retrieved_at": "2026-11-22T18:20:29.222656+00:00",
+  "source_retrieved_at": "2026-11-22T18:30:27.442356+00:00",
   "sources": [
     {
       "url": "https://www.hamilton.edu/admission/visiting/courses/printable-schedule?term=27%2FSP",
       "resolved_url": "https://www.hamilton.edu/admission/visiting/courses/printable-schedule?term=27%2FSP",
-      "retrieved_at": "2026-11-22T18:20:22.277591+00:00",
+      "retrieved_at": "2026-11-22T18:30:19.028244+00:00",
       "sha256": "88358f2e670ecd15b847465ad9b7154f05d953a378e94880b918b8ae4af3e4cd"
     },
     {
       "url": "https://www.hamilton.edu/offices/registrar/registration/class-year-seats",
       "resolved_url": "https://www.hamilton.edu/documents/27SP%20Seat%20Allocations%20for%20Registration%20-%202026-11-11.pdf",
-      "retrieved_at": "2026-11-22T18:20:23.229032+00:00",
+      "retrieved_at": "2026-11-22T18:30:20.063279+00:00",
       "sha256": "b16920ceb7811c3925222805e4985d02fc3fef6bd470351a357df4996dfdff2e"
     }
   ]

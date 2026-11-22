@@ -362,7 +362,44 @@ function getCurrentCatalogSnapshot() {
   return JSON.parse(element.textContent);
 }
 
-function validateBookletBaseline(baseline) {
+function normalizeBaselineInput(data) {
+  // Already a booklet baseline file
+  if (data?.format === 'hamilton-course-booklet-baseline') {
+    return data;
+  }
+
+  // Raw catalog snapshot from catalog-snapshots/<hash>.json
+  if (
+    data &&
+    [1, 2].includes(data.schema_version) &&
+    Array.isArray(data.records) &&
+    typeof data.snapshot_id === 'string' &&
+    typeof data.term === 'string'
+  ) {
+    const allRecordIds = data.records
+      .map(record => record?.id)
+      .filter(id => typeof id === 'string');
+
+    return {
+      format: 'hamilton-course-booklet-baseline',
+      format_version: 1,
+      created_at: data.generated_at || new Date().toISOString(),
+      term: data.term,
+      term_label: data.term_label || data.term,
+      snapshot_id: data.snapshot_id,
+      selected_course_count: allRecordIds.length,
+      selected_record_ids: allRecordIds,
+      snapshot: data,
+      _isRawSnapshot: true,
+    };
+  }
+
+  return data;
+}
+
+function validateBookletBaseline(rawInput) {
+  const baseline = normalizeBaselineInput(rawInput);
+
   if (baseline?.format !== 'hamilton-course-booklet-baseline' || baseline.format_version !== 1) {
     throw new Error('This is not a supported Hamilton booklet baseline file.');
   }

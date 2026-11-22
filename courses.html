@@ -20174,21 +20174,21 @@
  <article id="courseBooklet" aria-label="Filtered course booklet"></article>
 
 <script type="application/json" id="catalogMetadata">{
-  "generated_at": "2026-11-22T18:20:31.182010+00:00",
+  "generated_at": "2026-11-22T18:30:30.122237+00:00",
   "identity_issues": [],
   "refresh_date": "2026-11-22",
   "schema_version": 1,
   "snapshot_id": "ef5feb80615e3578d9f4b30c1860e6b10da35aeef5fbfe05f398234577982f55",
   "snapshot_path": "catalog-snapshots/ef5feb80615e3578d9f4b30c1860e6b10da35aeef5fbfe05f398234577982f55.json",
   "source_file_sha256": "a6bd29cca2c93fb5ddaf92374d46d1df861b7f227b15cd9c157fef64c83b71d0",
-  "source_retrieved_at": "2026-11-22T18:20:29.222656+00:00",
+  "source_retrieved_at": "2026-11-22T18:30:27.442356+00:00",
   "source_updated_at": null,
   "term": "2027-spring",
   "term_label": "Spring 2027"
 }</script>
  <script type="application/json" id="catalogSnapshot">{
   "as_of_label": " as of Nov 22",
-  "generated_at": "2026-11-22T18:20:31.182010+00:00",
+  "generated_at": "2026-11-22T18:30:30.122237+00:00",
   "identity_issues": [],
   "records": [
     {
@@ -65277,7 +65277,44 @@ function getCurrentCatalogSnapshot() {
   return JSON.parse(element.textContent);
 }
 
-function validateBookletBaseline(baseline) {
+function normalizeBaselineInput(data) {
+  // Already a booklet baseline file
+  if (data?.format === 'hamilton-course-booklet-baseline') {
+    return data;
+  }
+
+  // Raw catalog snapshot from catalog-snapshots/<hash>.json
+  if (
+    data &&
+    [1, 2].includes(data.schema_version) &&
+    Array.isArray(data.records) &&
+    typeof data.snapshot_id === 'string' &&
+    typeof data.term === 'string'
+  ) {
+    const allRecordIds = data.records
+      .map(record => record?.id)
+      .filter(id => typeof id === 'string');
+
+    return {
+      format: 'hamilton-course-booklet-baseline',
+      format_version: 1,
+      created_at: data.generated_at || new Date().toISOString(),
+      term: data.term,
+      term_label: data.term_label || data.term,
+      snapshot_id: data.snapshot_id,
+      selected_course_count: allRecordIds.length,
+      selected_record_ids: allRecordIds,
+      snapshot: data,
+      _isRawSnapshot: true,
+    };
+  }
+
+  return data;
+}
+
+function validateBookletBaseline(rawInput) {
+  const baseline = normalizeBaselineInput(rawInput);
+
   if (baseline?.format !== 'hamilton-course-booklet-baseline' || baseline.format_version !== 1) {
     throw new Error('This is not a supported Hamilton booklet baseline file.');
   }
