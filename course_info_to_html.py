@@ -254,14 +254,15 @@ def build_historical_html(row):
     waitlist_display = f"{clean_num(waitlist)} student(s)" if is_valid(waitlist) else "0 students"
     open_seats_display = f"{clean_num(open_seats)} remaining" if is_valid(open_seats) else "0 remaining"
 
-    hist_info_html = \
-        f'''<p style="font-size: 12px; margin: 8px 0;">
+    hist_info_html = (
+        f'''<div class="prior-term-info">
         <b>📊 Prior Term ({hist_term}):</b> 
         Fill Rate: <span class="quietnotable">{fill_display}</span> &bull; 
         Sections: <span class="quietnotable">{sections_display}</span> &bull; 
         Waitlist: <span class="quietnotable">{waitlist_display}</span> &bull; 
         Open Seats: <span class="quietnotable">{open_seats_display}</span>
-        </p>'''
+        </div>'''
+    )
 
     return hist_info_html
   
