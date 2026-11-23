@@ -494,201 +494,336 @@
    margin: 16mm;
  }
  
-@media print {
-   :root,
-   [data-theme="dark"] {
-     color-scheme: light;
-     --bg-color: #ffffff;
-     --surface-color: #ffffff;
-     --surface-subtle: #ffffff;
-     --surface-color2: #ffffff;
-     --text-main: #000000;
-     --text-muted: #000000;
-     --quietgrey: #000000;
-     --quietnotable: #000000;
-     --primary-color: #000000;
-     --border-color: #000000;
-   }
-   body {
-     background: white !important;
-     padding: 0;
-     color: black !important;
-     -webkit-print-color-adjust: exact;
-     print-color-adjust: exact;
-   }
-   body > .container, body > footer {
-     display: none !important;
-   }
-   #courseBooklet {
-     display: block;
-     color: black !important;
-     font: 10.5pt/1.4 Georgia, 'Times New Roman', serif;
-     overflow-wrap: anywhere;
-   }
-   #courseBooklet * {
-     color: black !important;
-     background: transparent !important;
-     box-shadow: none !important;
-   }
-   #courseBooklet h1 {
-     font-size: 20pt;
-     margin: 0 0 8pt;
-   }
-   #courseBooklet > p {
-     margin: 5pt 0;
-   }
-   #courseBooklet .booklet-disclaimer {
-     font-size: 9pt;
-     border-bottom: 1pt solid black;
-     padding-bottom: 10pt;
-   }
-   #courseBooklet .booklet-provenance {
-     font-size: 8pt;
-     overflow-wrap: anywhere;
-   }
-   #courseBooklet h2 {
-     font-size: 15pt;
-     border-bottom: 0.5pt solid black;
-     margin: 16pt 0 8pt;
-     padding-bottom: 3pt;
-   }
-   #courseBooklet h3 {
-     font-size: 12pt;
-     margin: 0 0 3pt;
-   }
-   #courseBooklet h1, #courseBooklet h2, #courseBooklet h3,
-   .booklet-course > div:first-child {
-     break-after: avoid;
-     break-inside: avoid;
-   }
-   .booklet-course {
-     margin: 0 0 12pt;
-     orphans: 3;
-     widows: 3;
-   }
-   .booklet-course > div {
-     margin-bottom: 5pt;
-   }
-   .booklet-description-label {
-     font-weight: bold;
-     break-after: avoid;
-   }
-  #courseBooklet .desc-body {
-	  border-left: 0.5pt solid #555; /* hairline */
-	  padding: 2pt 0 2pt 8pt;
-	  border-radius: 0;
+@page {
+  margin: 16mm;
+  @top-left {
+    content: "Spring 2027 Course Booklet";
+    font: 8pt 'Segoe UI', Arial, sans-serif;
+    color: #555;
   }
-  /* Tighten padding/margins around the description in print view */
-	#courseBooklet .booklet-description,
-	#courseBooklet .booklet-course > div:last-of-type {
-	  padding-top: 3pt;
-	  padding-bottom: 3pt;
-	  margin-top: 3pt;
-	  margin-bottom: 3pt;
-	}
+  @bottom-right {
+    content: "Page " counter(page) " of " counter(pages);
+    font: 8pt 'Segoe UI', Arial, sans-serif;
+    color: #555;
+  }
+}
 
-	/* Remove default browser 1em top/bottom margins on <p> tags inside descriptions */
-	#courseBooklet .booklet-course p {
-	  margin-top: 0;
-	  margin-bottom: 4pt;
-	}
+@page :first {
+  @top-left {
+    content: none;
+  }
+}
 
-	#courseBooklet .booklet-course p:last-child {
-	  margin-bottom: 0;
-	}
-   #courseBooklet a {
-     color: black;
-     text-decoration: none;
-   }
-   #courseBooklet .corrigendum-section {
-     margin: 6pt 0;
-   }
-   #courseBooklet .corrigendum-section h2 {
-     font-size: 10pt;
-     margin: 0 0 2pt;
-   }
-   #courseBooklet .corrigendum-section ul {
-     margin: 0;
-     padding-left: 12pt;
-     font-size: 8pt;
-     line-height: 1.25;
-   }
-   #courseBooklet .corrigendum-description {
-     font-style: italic;
-     margin-top: 1pt;
-   }
-   #courseBooklet .corrigendum-description {
+@media print {
+  :root,
+  [data-theme="dark"] {
+    color-scheme: light;
+    --bg-color: #ffffff;
+    --surface-color: #ffffff;
+    --surface-subtle: #ffffff;
+    --surface-color2: #ffffff;
+    --text-main: #000000;
+    --text-muted: #000000;
+    --quietgrey: #000000;
+    --quietnotable: #000000;
+    --primary-color: #000000;
+    --border-color: #000000;
+  }
+  
+  @page {
+  margin: 13mm 16mm 14mm 16mm;
+  @top-left {
+	content: "Spring 2027 Course Booklet";
+	font: 8pt 'Segoe UI', Arial, sans-serif;
+	color: #555;
+  }
+  @bottom-right {
+	content: "Page " counter(page) " of " counter(pages);
+	font: 8pt 'Segoe UI', Arial, sans-serif;
+	color: #555;
+  }
+  }
+
+  @page :first {
+    @top-left {
+	  content: none;
+    }
+  }
+
+  body {
+    background: white !important;
+    padding: 0;
+    color: black !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  body > .container,
+  body > footer {
+    display: none !important;
+  }
+
+  #courseBooklet {
+    display: block;
+    color: black;
+    font: 10pt/1.42 Georgia, 'Times New Roman', serif;
+    overflow-wrap: break-word;
+  }
+
+  #courseBooklet * {
+    color: black;
+    background: transparent;
+    box-shadow: none !important;
+  }
+
+  #courseBooklet h1 {
+    font-size: 20pt;
+    margin: 0 0 8pt;
+  }
+
+  #courseBooklet > p {
+    margin: 5pt 0;
+  }
+
+  #courseBooklet .booklet-disclaimer {
+    font-size: 9pt;
+    border-bottom: 1pt solid black;
+    padding-bottom: 10pt;
+  }
+
+  #courseBooklet .booklet-provenance {
+    font-size: 8pt;
+    overflow-wrap: anywhere;
+  }
+
+  #courseBooklet h2 {
+    font-size: 15pt;
+    border-bottom: 1pt solid #000; /* announcing subject */
+    margin: 20pt 0 10pt;
+    padding-bottom: 3pt;
+  }
+
+  #courseBooklet h3 {
+    font-size: 11.5pt;
+    margin: 0 0 2pt;
+  }
+
+  #courseBooklet h1,
+  #courseBooklet h2,
+  #courseBooklet h3,
+  .booklet-course > div:first-child {
+    break-after: avoid;
+    break-inside: avoid;
+  }
+
+  .booklet-course {
+    margin: 0 0 11pt;
+    padding-bottom: 10pt;
+    /* border-bottom: 0.4pt solid #ccc; */
+    orphans: 1;
+    widows: 1; 
+  }
+
+  .booklet-course > div {
+    margin-bottom: 5pt;
+  }
+
+  .booklet-subtitle,
+  .booklet-meta,
+  .booklet-prior-term,
+  #courseBooklet .lab-card {
+    font-family: 'Segoe UI', Helvetica, Arial, sans-serif;
+    font-size: 8.5pt;
+    line-height: 1.35;
+    color: #222;
+  }
+
+  .booklet-subtitle {
+    font-weight: 600;
+    color: #444;
+    margin-bottom: 5pt;
+  }
+
+  .booklet-meta-grid {
+    display: flex;
+    flex-wrap: wrap;
+    column-gap: 14pt;
+    row-gap: 2pt;
+    margin-bottom: 6pt;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .booklet-meta-full {
+    grid-column: 1 / -1;
+  }
+  #courseBooklet,
+  .booklet-course,
+  .booklet-course > div,
+  #courseBooklet .desc-body {
+    orphans: 1;
+    widows: 1;
+  }
+
+  .booklet-course {
+    margin: 0 0 9pt;
+    padding-bottom: 4pt;
+  }
+
+  .booklet-course > div {
+    margin-bottom: 4pt;
+  }
+
+  #courseBooklet .desc-body {
+    border-left: 0.5pt solid #555;
+    padding: 1pt 0 1pt 8pt;
+    border-radius: 0;
+  }
+
+  #courseBooklet .booklet-description,
+  #courseBooklet .booklet-course > div:last-of-type {
+    padding-top: 2pt;
+    padding-bottom: 0;
+    margin-top: 2pt;
+    margin-bottom: 0;
+  }
+  #courseBooklet .card-header-flex {
+    display: block;
+    break-inside: avoid;
+    page-break-inside: avoid;
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+  #courseBooklet .btn-hide-course {
+    display: none;
+  }
+  #courseBooklet .card-details {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .booklet-description-label {
+    font-weight: bold;
+    break-after: avoid;
+  }
+
+  #courseBooklet .desc-body {
+    border-left: 0.5pt solid #555; /* hairline */
+    padding: 2pt 0 2pt 8pt;
+    border-radius: 0;
+  }
+
+  #courseBooklet .booklet-description,
+  #courseBooklet .booklet-course > div:last-of-type {
+    padding-top: 3pt;
+    padding-bottom: 3pt;
+    margin-top: 3pt;
+    margin-bottom: 3pt;
+  }
+
+  #courseBooklet .booklet-course p {
+    margin-top: 0;
+    margin-bottom: 4pt;
+  }
+
+  #courseBooklet .booklet-course p:last-child {
+    margin-bottom: 0;
+  }
+
+  #courseBooklet a {
+    color: black;
+    text-decoration: none;
+  }
+
+  #courseBooklet .corrigendum-section {
+    margin: 6pt 0;
+  }
+
+  #courseBooklet .corrigendum-section h2 {
+    font-size: 10pt;
+    margin: 0 0 2pt;
+  }
+
+  #courseBooklet .corrigendum-section ul {
+    margin: 0;
+    padding-left: 12pt;
+    font-size: 8pt;
+    line-height: 1.25;
+  }
+
+  #courseBooklet .corrigendum-description {
     font-style: italic;
     margin-top: 1pt;
   }
+
   #courseBooklet .corrigendum-description del {
     text-decoration: line-through;
     color: #555;
     background-color: #f3f3f3;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
   }
+
   #courseBooklet .corrigendum-description ins {
     text-decoration: underline;
     font-weight: bold;
     background-color: #eaeaea;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
   }
-   #courseBooklet .corrigendum-section li {
-     break-inside: avoid;
-     margin-bottom: 1.5pt;
-   }
-   #courseBooklet tr {
-     break-inside: avoid;
-   }
-   #courseBooklet table {
-     width: 100%;
-     border-collapse: collapse;
-     table-layout: fixed;
-     font-size: 8pt;
-   }
-   #courseBooklet th, #courseBooklet td {
-     border: 0.5pt solid #777;
-     padding: 3pt;
-     text-align: left;
-     vertical-align: top;
-     overflow-wrap: anywhere;
-   }
-   #courseBooklet .nested-labs-container {
+
+  #courseBooklet .corrigendum-section li {
+    break-inside: avoid;
+    margin-bottom: 1.5pt;
+  }
+
+  #courseBooklet tr {
+    break-inside: avoid;
+  }
+
+  #courseBooklet table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    font-size: 8pt;
+  }
+
+  #courseBooklet th,
+  #courseBooklet td {
+    border: 0.5pt solid #777;
+    padding: 3pt;
+    text-align: left;
+    vertical-align: top;
+    overflow-wrap: anywhere;
+  }
+
+  #courseBooklet .nested-labs-container {
     margin-top: 4pt;
     padding: 0;
     background: none;
     border: none;
-   }
+  }
 
-   #courseBooklet .lab-card {
-     display: flex;
-     flex-wrap: wrap;
-     align-items: baseline;
-     gap: 0 6pt;
-     margin: 2pt 0 0 10pt;
-     padding: 0;
-     background: none;
-     border: none;
-     box-shadow: none;
-     line-height: 1.25;
-     break-inside: avoid;
-   }
+  #courseBooklet .lab-card {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0 6pt;
+    border-left: 1.5pt solid #666;
+    padding: 1pt 0 1pt 7pt;
+    margin: 3pt 0 0 8pt;
+    break-inside: avoid;
+  }
 
   #courseBooklet .lab-code,
   #courseBooklet .lab-details {
     display: inline;
     margin: 0;
-    font-size: 9.5pt;
+    font-size: 9pt;
     color: black;
   }
 
   #courseBooklet .lab-code::after {
     content: ":";
   }
- }
- @media (max-width: 600px) {
+}
+ 
+@media (max-width: 600px) {
    .filter-panel {
      padding: 10px 12px;
      top: 5px;
@@ -16513,7 +16648,7 @@
  <article id="courseBooklet" aria-label="Filtered course booklet"></article>
 
 <script type="application/json" id="catalogMetadata">{
-  "generated_at": "2026-11-23T03:52:39.344031+00:00",
+  "generated_at": "2026-11-23T05:30:59.018478+00:00",
   "identity_issues": [],
   "refresh_date": "2026-11-22",
   "schema_version": 1,
@@ -16527,7 +16662,7 @@
 }</script>
  <script type="application/json" id="catalogSnapshot">{
   "as_of_label": " as of Nov 22",
-  "generated_at": "2026-11-23T03:52:39.344031+00:00",
+  "generated_at": "2026-11-23T05:30:59.018478+00:00",
   "identity_issues": [],
   "records": [
     {
@@ -62406,11 +62541,8 @@ function prepareCourseBooklet() {
         label.firstChild.textContent = label.firstChild.textContent.replace(/^\p{Extended_Pictographic}\uFE0F?\s*/u, '');
       }
     });
-    const descriptionLabel = entry.children[2]?.firstElementChild;
-    if (descriptionLabel?.textContent.trim() === '\u{1F4D6} Description') {
-      descriptionLabel.textContent = 'Description';
-      descriptionLabel.className = 'booklet-description-label';
-    }
+	// No need to print the word "Description"
+    entry.querySelector('.desc-label')?.remove(); 
     section.appendChild(entry);
   });
 }
