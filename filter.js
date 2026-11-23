@@ -1152,11 +1152,8 @@ function prepareCourseBooklet() {
         label.firstChild.textContent = label.firstChild.textContent.replace(/^\p{Extended_Pictographic}\uFE0F?\s*/u, '');
       }
     });
-    const descriptionLabel = entry.children[2]?.firstElementChild;
-    if (descriptionLabel?.textContent.trim() === '\u{1F4D6} Description') {
-      descriptionLabel.textContent = 'Description';
-      descriptionLabel.className = 'booklet-description-label';
-    }
+	// No need to print the word "Description"
+    entry.querySelector('.desc-label')?.remove(); 
     section.appendChild(entry);
   });
 }
