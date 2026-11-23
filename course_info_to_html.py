@@ -538,9 +538,10 @@ def display_course_info(data, mode='html'):
             if comments_display:
                 card.append(f'    <div>💬 <b>Comments:</b> {comments_display}</div>')
             
-            hist_info_html = build_historical_html(row)
-            if is_valid(hist_info_html):
-                card.append(f'{hist_info_html}')
+            if False: # don't need historical info now!
+                hist_info_html = build_historical_html(row)
+                if is_valid(hist_info_html):
+                    card.append(f'{hist_info_html}')
             
             card.append('  </div>')
             
@@ -548,7 +549,7 @@ def display_course_info(data, mode='html'):
             if is_valid(desc):
                 cleaned_desc = clean_html(desc)
                 card.extend([
-                    '  <div style="margin-top: 14px;">',
+                    '  <div style="margin-top: 10px;">',
                     '    <div class="desc-label">📖 Description</div>',
                     f'    <div class="desc-body">{cleaned_desc}</div>',
                     '  </div>',
