@@ -494,6 +494,26 @@
    margin: 16mm;
  }
  
+@page {
+  margin: 16mm;
+  @top-left {
+    content: "Spring 2027 Course Booklet";
+    font: 8pt 'Segoe UI', Arial, sans-serif;
+    color: #555;
+  }
+  @bottom-right {
+    content: "Page " counter(page) " of " counter(pages);
+    font: 8pt 'Segoe UI', Arial, sans-serif;
+    color: #555;
+  }
+}
+
+@page :first {
+  @top-left {
+    content: none;
+  }
+}
+
 @media print {
    :root,
    [data-theme="dark"] {
