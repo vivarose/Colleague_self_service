@@ -617,6 +617,24 @@
      font-style: italic;
      margin-top: 1pt;
    }
+   #courseBooklet .corrigendum-description {
+    font-style: italic;
+    margin-top: 1pt;
+  }
+  #courseBooklet .corrigendum-description del {
+    text-decoration: line-through;
+    color: #555;
+    background-color: #f3f3f3;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  #courseBooklet .corrigendum-description ins {
+    text-decoration: underline;
+    font-weight: bold;
+    background-color: #eaeaea;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
    #courseBooklet .corrigendum-section li {
      break-inside: avoid;
      margin-bottom: 1.5pt;
@@ -16495,7 +16513,7 @@
  <article id="courseBooklet" aria-label="Filtered course booklet"></article>
 
 <script type="application/json" id="catalogMetadata">{
-  "generated_at": "2026-11-23T03:33:01.349365+00:00",
+  "generated_at": "2026-11-23T03:52:39.344031+00:00",
   "identity_issues": [],
   "refresh_date": "2026-11-22",
   "schema_version": 1,
@@ -16509,7 +16527,7 @@
 }</script>
  <script type="application/json" id="catalogSnapshot">{
   "as_of_label": " as of Nov 22",
-  "generated_at": "2026-11-23T03:33:01.349365+00:00",
+  "generated_at": "2026-11-23T03:52:39.344031+00:00",
   "identity_issues": [],
   "records": [
     {
@@ -61973,12 +61991,194 @@ function buildCorrigendumUrlNode(rawValue) {
   return link;
 }
 
+function tokenizeWords(text) {
+  return String(text || '').match(/\S+\s*/g) || [];
+}
+
+function diffWordTokens(oldText, newText) {
+  const oldTokens = tokenizeWords(oldText);
+  const newTokens = tokenizeWords(newText);
+  const m = oldTokens.length;
+  const n = newTokens.length;
+
+  const dp = Array.from({ length: m + 1 }, () => new Uint32Array(n + 1));
+  for (let i = m - 1; i >= 0; i--) {
+    const oldWord = oldTokens[i].trim();
+    for (let j = n - 1; j >= 0; j--) {
+      if (oldWord === newTokens[j].trim()) {
+        dp[i][j] = dp[i + 1][j + 1] + 1;
+      } else {
+        dp[i][j] = Math.max(dp[i + 1][j], dp[i][j + 1]);
+      }
+    }
+  }
+
+  const ops = [];
+  let i = 0;
+  let j = 0;
+  while (i < m && j < n) {
+    if (oldTokens[i].trim() === newTokens[j].trim()) {
+      ops.push({ type: 'equal', oldText: oldTokens[i], newText: newTokens[j] });
+      i++;
+      j++;
+    } else if (dp[i + 1][j] >= dp[i][j + 1]) {
+      ops.push({ type: 'del', text: oldTokens[i++] });
+    } else {
+      ops.push({ type: 'ins', text: newTokens[j++] });
+    }
+  }
+  while (i < m) ops.push({ type: 'del', text: oldTokens[i++] });
+  while (j < n) ops.push({ type: 'ins', text: newTokens[j++] });
+
+  const merged = [];
+  for (let k = 0; k < ops.length; k++) {
+    const op = ops[k];
+    if (op.type === 'equal') {
+      let text = op.newText;
+      if (/\s+$/.test(op.oldText) && !/\s+$/.test(op.newText) && ops[k + 1]?.type === 'del') {
+        text += ' ';
+      }
+      const prev = merged[merged.length - 1];
+      if (prev && prev.type === 'equal') {
+        prev.text += text;
+      } else {
+        merged.push({ type: 'equal', text });
+      }
+    } else {
+      const prev = merged[merged.length - 1];
+      if (prev && prev.type === op.type) {
+        prev.text += op.text;
+      } else {
+        merged.push({ type: op.type, text: op.text });
+      }
+    }
+  }
+
+  return merged;
+}
+
+function appendWordDiff(container, oldText, newText) {
+  for (const chunk of diffWordTokens(oldText, newText)) {
+    if (chunk.type === 'equal') {
+      container.appendChild(document.createTextNode(chunk.text));
+    } else {
+      const el = document.createElement(chunk.type === 'ins' ? 'ins' : 'del');
+      el.textContent = chunk.text;
+      container.appendChild(el);
+    }
+  }
+}
+
+function plainCorrigendumText(value) {
+  if (value == null) return '';
+  const doc = new DOMParser().parseFromString(String(value), 'text/html');
+  return (doc.body.textContent || '').replace(/\s+/g, ' ').trim();
+}
+
+function appendWordDiff(container, oldText, newText) {
+  const oldWords = oldText ? oldText.split(/\s+/).filter(Boolean) : [];
+  const newWords = newText ? newText.split(/\s+/).filter(Boolean) : [];
+
+  let prefixLen = 0;
+  while (
+    prefixLen < oldWords.length &&
+    prefixLen < newWords.length &&
+    oldWords[prefixLen] === newWords[prefixLen]
+  ) {
+    prefixLen++;
+  }
+
+  let suffixLen = 0;
+  while (
+    suffixLen < oldWords.length - prefixLen &&
+    suffixLen < newWords.length - prefixLen &&
+    oldWords[oldWords.length - 1 - suffixLen] === newWords[newWords.length - 1 - suffixLen]
+  ) {
+    suffixLen++;
+  }
+
+  const oldMid = oldWords.slice(prefixLen, oldWords.length - suffixLen);
+  const newMid = newWords.slice(prefixLen, newWords.length - suffixLen);
+
+  const segments = [];
+  const pushWords = (type, words) => {
+    if (!words.length) return;
+    const last = segments[segments.length - 1];
+    if (last && last.type === type) {
+      last.words.push(...words);
+    } else {
+      segments.push({ type, words: [...words] });
+    }
+  };
+
+  pushWords('equal', oldWords.slice(0, prefixLen));
+
+  if (oldMid.length * newMid.length > 250000) {
+    pushWords('del', oldMid);
+    pushWords('ins', newMid);
+  } else {
+    const m = oldMid.length;
+    const n = newMid.length;
+    const dp = Array.from({ length: m + 1 }, () => new Uint32Array(n + 1));
+
+    for (let i = m - 1; i >= 0; i--) {
+      for (let j = n - 1; j >= 0; j--) {
+        dp[i][j] =
+          oldMid[i] === newMid[j]
+            ? dp[i + 1][j + 1] + 1
+            : Math.max(dp[i + 1][j], dp[i][j + 1]);
+      }
+    }
+
+    let i = 0;
+    let j = 0;
+    while (i < m && j < n) {
+      if (oldMid[i] === newMid[j]) {
+        pushWords('equal', [oldMid[i]]);
+        i++;
+        j++;
+      } else if (dp[i + 1][j] >= dp[i][j + 1]) {
+        pushWords('del', [oldMid[i]]);
+        i++;
+      } else {
+        pushWords('ins', [newMid[j]]);
+        j++;
+      }
+    }
+    if (i < m) pushWords('del', oldMid.slice(i));
+    if (j < n) pushWords('ins', newMid.slice(j));
+  }
+
+  pushWords('equal', oldWords.slice(oldWords.length - suffixLen));
+
+  segments.forEach((seg, index) => {
+    if (index > 0) {
+      container.appendChild(document.createTextNode(' '));
+    }
+    const text = seg.words.join(' ');
+    if (seg.type === 'del') {
+      const del = document.createElement('del');
+      del.textContent = text;
+      container.appendChild(del);
+    } else if (seg.type === 'ins') {
+      const ins = document.createElement('ins');
+      ins.textContent = text;
+      container.appendChild(ins);
+    } else {
+      container.appendChild(document.createTextNode(text));
+    }
+  });
+}
+
 function appendCorrigendumChangeFragment(container, change) {
   const oldRow = normalizeCorrigendumRow(change.before.variants[0]);
   const newRow = normalizeCorrigendumRow(change.current.variants[0]);
   const fields = getCorrigendumChangedFields(oldRow, newRow);
 
-  fields.forEach((field, index) => {
+  const inlineFields = fields.filter(field => field !== 'Course Description');
+  const hasDescriptionChange = fields.includes('Course Description');
+
+  inlineFields.forEach((field, index) => {
     if (index > 0) {
       container.appendChild(document.createTextNode('; '));
     }
@@ -61997,6 +62197,18 @@ function appendCorrigendumChangeFragment(container, change) {
       );
     }
   });
+
+  if (hasDescriptionChange) {
+    const descDiff = document.createElement('div');
+    descDiff.className = 'corrigendum-description';
+    descDiff.appendChild(document.createTextNode(`${corrigendumFieldLabel('Course Description')}: `));
+    appendWordDiff(
+      descDiff,
+      plainCorrigendumText(oldRow['Course Description']),
+      plainCorrigendumText(newRow['Course Description'])
+    );
+    container.appendChild(descDiff);
+  }
 }
 
 function appendCorrigendumList(container, heading, items) {
