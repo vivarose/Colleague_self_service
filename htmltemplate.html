@@ -573,6 +573,29 @@
      font-weight: bold;
      break-after: avoid;
    }
+  #courseBooklet .desc-body {
+	  border-left: 0.5pt solid #555; /* hairline */
+	  padding: 2pt 0 2pt 8pt;
+	  border-radius: 0;
+  }
+  /* Tighten padding/margins around the description in print view */
+	#courseBooklet .booklet-description,
+	#courseBooklet .booklet-course > div:last-of-type {
+	  padding-top: 3pt;
+	  padding-bottom: 3pt;
+	  margin-top: 3pt;
+	  margin-bottom: 3pt;
+	}
+
+	/* Remove default browser 1em top/bottom margins on <p> tags inside descriptions */
+	#courseBooklet .booklet-course p {
+	  margin-top: 0;
+	  margin-bottom: 4pt;
+	}
+
+	#courseBooklet .booklet-course p:last-child {
+	  margin-bottom: 0;
+	}
    #courseBooklet a {
      color: black;
      text-decoration: none;
