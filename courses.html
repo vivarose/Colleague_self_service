@@ -494,6 +494,26 @@
    margin: 16mm;
  }
  
+@page {
+  margin: 16mm;
+  @top-left {
+    content: "Spring 2027 Course Booklet";
+    font: 8pt 'Segoe UI', Arial, sans-serif;
+    color: #555;
+  }
+  @bottom-right {
+    content: "Page " counter(page) " of " counter(pages);
+    font: 8pt 'Segoe UI', Arial, sans-serif;
+    color: #555;
+  }
+}
+
+@page :first {
+  @top-left {
+    content: none;
+  }
+}
+
 @media print {
    :root,
    [data-theme="dark"] {
@@ -662,25 +682,22 @@
     border: none;
    }
 
-   #courseBooklet .lab-card {
-     display: flex;
-     flex-wrap: wrap;
-     align-items: baseline;
-     gap: 0 6pt;
-     margin: 2pt 0 0 10pt;
-     padding: 0;
-     background: none;
-     border: none;
-     box-shadow: none;
-     line-height: 1.25;
-     break-inside: avoid;
-   }
+  #courseBooklet .lab-card {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0 6pt;
+    border-left: 1.5pt solid #666;
+    padding: 1pt 0 1pt 7pt;
+    margin: 3pt 0 0 8pt;
+    break-inside: avoid;
+  }
 
   #courseBooklet .lab-code,
   #courseBooklet .lab-details {
     display: inline;
     margin: 0;
-    font-size: 9.5pt;
+    font-size: 9pt;
     color: black;
   }
 
@@ -16513,7 +16530,7 @@
  <article id="courseBooklet" aria-label="Filtered course booklet"></article>
 
 <script type="application/json" id="catalogMetadata">{
-  "generated_at": "2026-11-23T03:52:39.344031+00:00",
+  "generated_at": "2026-11-23T05:44:51.704109+00:00",
   "identity_issues": [],
   "refresh_date": "2026-11-22",
   "schema_version": 1,
@@ -16527,7 +16544,7 @@
 }</script>
  <script type="application/json" id="catalogSnapshot">{
   "as_of_label": " as of Nov 22",
-  "generated_at": "2026-11-23T03:52:39.344031+00:00",
+  "generated_at": "2026-11-23T05:44:51.704109+00:00",
   "identity_issues": [],
   "records": [
     {
@@ -62406,11 +62423,8 @@ function prepareCourseBooklet() {
         label.firstChild.textContent = label.firstChild.textContent.replace(/^\p{Extended_Pictographic}\uFE0F?\s*/u, '');
       }
     });
-    const descriptionLabel = entry.children[2]?.firstElementChild;
-    if (descriptionLabel?.textContent.trim() === '\u{1F4D6} Description') {
-      descriptionLabel.textContent = 'Description';
-      descriptionLabel.className = 'booklet-description-label';
-    }
+	// No need to print the word "Description"
+    entry.querySelector('.desc-label')?.remove(); 
     section.appendChild(entry);
   });
 }
