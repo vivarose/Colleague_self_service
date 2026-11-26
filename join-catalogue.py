@@ -738,7 +738,7 @@ if 'Catalogue URL' not in final_df.columns:
 
 missing_url_df = final_df[final_df['Catalogue URL'].isnull()]
 if len(missing_url_df) > 0:
-    print('⚠️ Missing URLs: ' + str(list(missing_url_df['COURSE_NO'])))
+    print('⚠️ Missing URLs for: ' + str(list(missing_url_df['COURSE_NO'])))
 else:
     print('✅ All URLs found')
 

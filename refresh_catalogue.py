@@ -27,6 +27,7 @@ from seat_allocations import parse_allocations
 if sys.stdout.encoding.lower() != 'utf-8':
     sys.stdout.reconfigure(encoding='utf-8')
 
+# should we fetch fresh descriptions?
 new_descriptions = False; # so slow.
 
 
