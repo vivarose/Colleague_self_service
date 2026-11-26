@@ -574,25 +574,27 @@ def display_course_info(data, mode='html'):
                             lab_schedules.append(f"{d} {st}–{en}" + (f" @ {rm}" if rm else ""))
                     
                     lab_sched_str = " | ".join(lab_schedules) if lab_schedules else "TBA"
-                    lab_inst = lab.get('Faculty', lab.get('INSTRUCTOR1', 'TBA'))
+                    
+                    # Properly fall back from Faculty to INSTRUCTOR1 if Faculty is NaN/empty
+                    lab_inst = lab.get('Faculty') if is_valid(lab.get('Faculty')) else lab.get('INSTRUCTOR1')
+                    lab_inst_string = f'👤 <b>Instructor:</b> {lab_inst} | ' if is_valid(lab_inst) else ""
+                    
                     lab_cap = clean_num(lab.get('MAXCAP') or lab.get('Sec Capacity', ''))
                     
-                    if is_valid(lab_inst):
-                        lab_inst_string = f'👤 <b>Instructor:</b> {lab_inst} | '
+                    lab_seats_taken = lab.get('Seats Taken')
+                    if is_valid(lab_seats_taken):
+                        lab_seats_taken = clean_num(lab_seats_taken)
+                        taken_text = f' ({lab_seats_taken} taken<span class="as-of-label"></span>)'
                     else:
-                        lab_inst_string = ""
-                        
+                        taken_text = ""
                     
                     card.append(f'''
                 <div class="lab-card">
                   <div class="lab-code">{lab_code}</div>
                   <div class="lab-details">
-                    🕒 <b>Schedule:</b> {lab_sched_str} | ''' + \
-                    lab_inst_string + \
-                        f'''👥 <b>Seats:</b> {lab_cap}
+                    🕒 <b>Schedule:</b> {lab_sched_str} | {lab_inst_string}👥 <b>Seats:</b> {lab_cap}{taken_text}
                   </div>
-                </div>
-                    ''')
+                </div>''')
                 card.append('  </div>') # Close nested-labs-container
             card.append('  </div>') # Close card-body
 
