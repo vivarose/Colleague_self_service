@@ -289,6 +289,7 @@ def refresh(output, refresh_date):
         }
         (staging / 'source-provenance.json').write_text(json.dumps(provenance, indent=2) + '\n')
         subprocess.run([sys.executable, str(staging / 'course_info_to_html.py')], check=True, encoding='utf-8')
+        print('Wrote courses.html and finishing up')
         # All network, parsing, and build checks finish before published files change.
         for name in ('merged_course_schedule.pkl', 'merged_course_schedule.csv', 
                      'courses.html', 'source-provenance.json', 'courseschedule.xlsx'):
